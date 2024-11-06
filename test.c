@@ -63,7 +63,22 @@ int main() {
     add_line(&lines, 0, 5);
     add_line(&lines, 6, 10);
     add_line(&lines, 11, 20);
-
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
+    add_line(&lines, 11, 20);
     // Print out the lines
     for (size_t i = 0; i < lines.size; i++) {
         printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
