@@ -65,24 +65,25 @@ void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
 }
 
 void delete_text(Text *t, Cursor *cur, Lines *lines) {
-  if ((t->capacity <= 0) || (cur->pos <= 0)) return; //TODO find out some error in lines.end and or .start
+  if ((t->capacity <= 0) || (cur->pos <= 0)) return; 
   
   if (cur->line_pos == 0) {
     cur->line_num--;
     cur->current_line--;
-    cur->line_pos = lines->lines[cur->current_line].end-1;
+    cur->line_pos = lines->lines[cur->current_line].end-lines->lines[cur->current_line].start-1;
     lines->lines[cur->current_line].end = lines->lines[cur->current_line+1].end-1;
     lines->size--;
-    for (size_t i = cur->current_line+1; i <= lines->size; ++i) {
+    for (size_t i = cur->current_line+1; i < lines->size; i++) {
       lines->lines[i].start = lines->lines[i+1].start;
       lines->lines[i].end = lines->lines[i+1].end;
     }
   } 
   else {
     cur->line_pos--;
+    lines->lines[cur->current_line].end--;
     for (size_t i = cur->current_line+1; i <= lines->size; ++i) {
       lines->lines[i].start--;
-      lines->lines[i].start--;
+      lines->lines[i].end--;
     }
   }
   cur->pos--;
@@ -129,16 +130,15 @@ void resize_lines(Lines *lines) {
     lines->capacity = new_capacity;
 }
 
-void add_line(Lines *lines, size_t line_num, size_t start, size_t end) { //TODO use lines->size instead of cursor->lines_num whem possible
+void add_line(Lines *lines, size_t line_num, size_t start, size_t end) { //line num is where we want to add
     if (lines->size == lines->capacity) {
         resize_lines(lines);
     }
     
-    //TODO what happens when press Enter in the middle of a line??
     //update rest of lines
     size_t prev_start;
     size_t prev_end;
-    for (size_t i = line_num; i < lines->size; ++i) { //TODO find out is the loop range is ok
+    for (size_t i = line_num; i < lines->size; ++i) { 
       prev_start = lines->lines[i].start;
       prev_end = lines->lines[i].end;
       lines->lines[i+1].start = prev_start;
