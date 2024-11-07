@@ -181,12 +181,13 @@ int main(void)
   init_cursor(&cursor);
 
   InitWindow(GW, GH, "JText - Core [0.0.1]");
+  SetTargetFPS(60);
   
   Font font = LoadFontEx("assets/cascadia-font.ttf", 20, 0, 250);
-
   int frames = 0;
-  SetTargetFPS(60);
-
+  float input_delay = 0.1f; //when key is constantly pressed
+  float input_lasttime = 0.0f;
+  int key_ = 0;
   while (!WindowShouldClose()) {
 
     //Update
@@ -197,8 +198,7 @@ int main(void)
     //writing
     int key = GetCharPressed();
     while (key > 0) {
-      //[32...125]
-      if ((key >= 32) && key <= 125) {
+      if (key >= 32 && key <= 125) {
         insert_text(&text, (char)key, &cursor, &lines);
         cursor.pos++;
         cursor.line_pos++;
@@ -206,62 +206,71 @@ int main(void)
       for (size_t i = 0; i < lines.size; i++) {
         printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
       }
-            
+      
       key = GetCharPressed();
     }
 
-    //deleting
-    if (IsKeyPressed(KEY_BACKSPACE)) {
-      delete_text(&text, &cursor, &lines);
-    }
-    
-    //enter [\n]
-    if (IsKeyPressed(KEY_ENTER)) {
-      insert_text(&text, '\n', &cursor, &lines);
-      cursor.pos++;
-      new_line(&lines, &cursor);
+    float current_time = GetTime();
+    if (current_time - input_lasttime >= input_delay) {
+      if (IsKeyDown(KEY_RIGHT) && cursor.pos < text.capacity) { 
+        if (cursor.pos == lines.lines[cursor.current_line].end-1 
+          && cursor.current_line < cursor.line_num) {
+          cursor.current_line++;
+          cursor.line_pos = 0;
+          cursor.pos++;
+          for (size_t i = 0; i < lines.size; i++) {
+            printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
+          }
 
-      for (size_t i = 0; i < lines.size; i++) {
-        printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
-      }
-    }
-
-    //navigation
-    if ((IsKeyPressed(KEY_RIGHT)) && (cursor.pos < text.capacity)) {       
-      if (cursor.pos == lines.lines[cursor.current_line].end-1 && cursor.current_line < cursor.line_num) {
-        cursor.current_line++;
-        cursor.line_pos = 0;
-        cursor.pos++;
-        for (size_t i = 0; i < lines.size; i++) {
-          printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
+        } else {
+          cursor.pos++;
+          cursor.line_pos++;
         }
 
-      } else {
-        cursor.pos++;
-        cursor.line_pos++;
-      }
-    } 
-    else if ((IsKeyPressed(KEY_LEFT)) && (cursor.pos > 0)) {
-      if (cursor.line_pos == 0 && cursor.current_line > 0) {
-        cursor.current_line--;
-        cursor.line_pos = lines.lines[cursor.current_line].end-lines.lines[cursor.current_line].start-1;
-        cursor.pos--;
-        for (size_t i = 0; i < lines.size; i++) {
-          printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
+        input_lasttime = current_time;
+      } 
+      
+      if (IsKeyDown(KEY_LEFT) && cursor.pos > 0) {
+        if (cursor.line_pos == 0 && cursor.current_line > 0) {
+          cursor.current_line--;
+          cursor.line_pos = lines.lines[cursor.current_line].end-lines.lines[cursor.current_line].start-1;
+          cursor.pos--;
+          for (size_t i = 0; i < lines.size; i++) {
+            printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
+          }
+        } else {
+          cursor.pos--;
+          cursor.line_pos--;
         }
 
-      } else {
-        cursor.pos--;
-        cursor.line_pos--;
+        input_lasttime = current_time;
       }
     }
+
+    key_ = GetKeyPressed();
+    switch (key_) {
+      case KEY_ENTER:
+        insert_text(&text, '\n', &cursor, &lines);
+        cursor.pos++;
+        new_line(&lines, &cursor);
+
+        for (size_t i = 0; i < lines.size; i++) {
+          printf("Line %zu: start = %zu, end = %zu\n", 
+                 i, lines.lines[i].start, lines.lines[i].end);
+        }
+      break;
+        
+      case KEY_BACKSPACE:
+        delete_text(&text, &cursor, &lines);
+      break;
+    }
+    key_ = GetKeyPressed();
     
     //Drawing
     //---------------------------------------------
     BeginDrawing();
       ClearBackground(BLACK);
       
-      // DrawText(text.text, 20, 20, 20, WHITE);
       DrawTextEx(font, text.text, (Vector2){ 20.0f, 20.0f, }, (float)font.baseSize, 2, WHITE);
 
       DrawText(TextFormat(
@@ -284,10 +293,8 @@ int main(void)
   }
   
   UnloadFont(font);
-  
   CloseWindow();
   free_text(&text);
   free_lines(&lines);
-
   return 0;
 }
