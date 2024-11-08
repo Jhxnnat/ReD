@@ -1,11 +1,13 @@
 # todo-list for this code editor!
 
 - [x] start key holding
-- [ ] backspace & enter keyhold
+- [x] backspace & enter keyhold
 - [ ] vertical navigation
-- [ ] write and test
-- [ ] tab indent
-- [ ] supr key
-- [ ] float file
+    - [ ] nav + intentation
+- [x] tab indent
+- [x] supr key
+- [ ] load file
 - [ ] save file
+- [ ] vertical scroll
+- [ ] write and test
 

@@ -53,6 +53,8 @@ void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
   t->capacity++;
   memmove(t->text+cu->pos+1, t->text+cu->pos, t->capacity-cu->pos+1);
   t->text[cu->pos] = c;
+  cu->pos++;
+  cu->line_pos++;
   lines->lines[cu->current_line].end += 1;
   if (cu->current_line < cu->line_num) {
     printf("updating lines!\n");
@@ -168,6 +170,52 @@ void free_lines(Lines *lines) {
   lines->capacity = lines->size = 0;
 }
 
+void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
+  if (left) {
+    if (cursor->line_pos == 0 && cursor->current_line > 0) {
+      cursor->current_line--;
+      cursor->line_pos = lines->lines[cursor->current_line].end-lines->lines[cursor->current_line].start-1;
+      cursor->pos--;
+    } else {
+      cursor->pos--;
+      cursor->line_pos--;
+    }
+  } 
+  else {
+    if (cursor->pos == lines->lines[cursor->current_line].end-1 
+      && cursor->current_line < cursor->line_num) {
+      cursor->current_line++;
+      cursor->line_pos = 0;
+      cursor->pos++;
+    } else {
+      cursor->pos++;
+      cursor->line_pos++;
+    }
+  }
+}
+
+void cursor_move_v(Cursor *cursor, Lines *lines, int dir) { //TODO fix this please!
+  if (dir > 0 && cursor->current_line == lines->size-1) return;
+  if (dir < 0 && cursor->current_line == 0) return;
+
+  size_t prev_line = cursor->current_line;
+  cursor->current_line += dir;
+  if (cursor->current_line < 0) cursor->current_line = 0;
+  else if (cursor->current_line > lines->size) cursor->current_line = lines->size;
+
+  size_t current_line = cursor->current_line;
+  size_t len = lines->lines[prev_line].end - lines->lines[prev_line].start - 1;
+  size_t len_ = lines->lines[current_line].end - lines->lines[current_line].start;
+  if (len_ < cursor->line_pos) {
+    cursor->line_pos = lines->lines[current_line].end - lines->lines[current_line].start - 1;
+    cursor->pos = lines->lines[current_line].end-1;
+  }
+  else {
+    //cursor.line_pos remains the same
+    cursor->pos = lines->lines[current_line].start + cursor->line_pos;
+  }
+}
+
 int main(void) 
 {
   Text text;
@@ -200,8 +248,8 @@ int main(void)
     while (key > 0) {
       if (key >= 32 && key <= 125) {
         insert_text(&text, (char)key, &cursor, &lines);
-        cursor.pos++;
-        cursor.line_pos++;
+        // cursor.pos++;
+        // cursor.line_pos++;
       }
       for (size_t i = 0; i < lines.size; i++) {
         printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
@@ -213,58 +261,51 @@ int main(void)
     float current_time = GetTime();
     if (current_time - input_lasttime >= input_delay) {
       if (IsKeyDown(KEY_RIGHT) && cursor.pos < text.capacity) { 
-        if (cursor.pos == lines.lines[cursor.current_line].end-1 
-          && cursor.current_line < cursor.line_num) {
-          cursor.current_line++;
-          cursor.line_pos = 0;
-          cursor.pos++;
-          for (size_t i = 0; i < lines.size; i++) {
-            printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
-          }
-
-        } else {
-          cursor.pos++;
-          cursor.line_pos++;
-        }
-
+        cursor_move_h(&cursor, &lines, false);
         input_lasttime = current_time;
       } 
-      
       if (IsKeyDown(KEY_LEFT) && cursor.pos > 0) {
-        if (cursor.line_pos == 0 && cursor.current_line > 0) {
-          cursor.current_line--;
-          cursor.line_pos = lines.lines[cursor.current_line].end-lines.lines[cursor.current_line].start-1;
-          cursor.pos--;
-          for (size_t i = 0; i < lines.size; i++) {
-            printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
-          }
-        } else {
-          cursor.pos--;
-          cursor.line_pos--;
-        }
-
+        cursor_move_h(&cursor, &lines, true);
         input_lasttime = current_time;
       }
-    }
+      if (IsKeyDown(KEY_UP)) {
+        cursor_move_v(&cursor, &lines, -1);
+        input_lasttime = current_time;
+      }
+      if (IsKeyDown(KEY_DOWN)) {
+        cursor_move_v(&cursor, &lines, 1);
+        input_lasttime = current_time;
+      }
 
-    key_ = GetKeyPressed();
-    switch (key_) {
-      case KEY_ENTER:
-        insert_text(&text, '\n', &cursor, &lines);
-        cursor.pos++;
+      if (IsKeyDown(KEY_ENTER)) {
+        insert_text(&text, '\n', &cursor, &lines); 
+        // cursor.pos++;
         new_line(&lines, &cursor);
 
         for (size_t i = 0; i < lines.size; i++) {
           printf("Line %zu: start = %zu, end = %zu\n", 
                  i, lines.lines[i].start, lines.lines[i].end);
         }
-      break;
-        
-      case KEY_BACKSPACE:
+        input_lasttime = current_time;
+      }
+
+      if (IsKeyDown(KEY_BACKSPACE)) {
         delete_text(&text, &cursor, &lines);
-      break;
+        input_lasttime = current_time;
+      }
+
+      if (IsKeyDown(KEY_TAB)) { //TODO this could be a loop that iterates n (indent config) times!
+        insert_text(&text, ' ', &cursor, &lines);
+        insert_text(&text, ' ', &cursor, &lines);
+        input_lasttime = current_time;
+      }
+
+      if (IsKeyDown(KEY_DELETE) && text.capacity > 0 && cursor.pos < text.capacity) { 
+        cursor_move_h(&cursor, &lines, false);
+        delete_text(&text, &cursor, &lines);
+        input_lasttime = current_time;
+      }
     }
-    key_ = GetKeyPressed();
     
     //Drawing
     //---------------------------------------------
