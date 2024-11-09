@@ -152,7 +152,7 @@ void add_line(Lines *lines, size_t line_num, size_t start, size_t end) { //line 
     lines->size++;
 }
 
-void new_line(Lines *lines, Cursor *c) {
+void new_line(Lines *lines, Cursor *c) { //TODO this sould just insert_text('\n').. etc
   ssize_t start = c->pos;
   size_t end = lines->lines[c->current_line].end;
 
@@ -194,7 +194,7 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
   }
 }
 
-void cursor_move_v(Cursor *cursor, Lines *lines, int dir) { //TODO fix this please!
+void cursor_move_v(Cursor *cursor, Lines *lines, int dir) { //TODO there is a tiny bug: the -1 does not work when going to the last line (cause last line does not have '\n')
   if (dir > 0 && cursor->current_line == lines->size-1) return;
   if (dir < 0 && cursor->current_line == 0) return;
 
@@ -206,13 +206,22 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) { //TODO fix this plea
   size_t current_line = cursor->current_line;
   size_t len = lines->lines[prev_line].end - lines->lines[prev_line].start - 1;
   size_t len_ = lines->lines[current_line].end - lines->lines[current_line].start;
-  if (len_ < cursor->line_pos) {
+  if (len_ <= cursor->line_pos) {
     cursor->line_pos = lines->lines[current_line].end - lines->lines[current_line].start - 1;
     cursor->pos = lines->lines[current_line].end-1;
   }
   else {
     //cursor.line_pos remains the same
     cursor->pos = lines->lines[current_line].start + cursor->line_pos;
+  }
+}
+
+void paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for \n, \t, \r etc to insert them manualy
+  const char *source = GetClipboardText();
+  size_t len = strlen(source);
+  
+  for (size_t i = 0; i < len; ++i) {
+    insert_text(text, source[i], cursor, lines);
   }
 }
 
@@ -305,6 +314,12 @@ int main(void)
         delete_text(&text, &cursor, &lines);
         input_lasttime = current_time;
       }
+
+      if (IsKeyDown(KEY_LEFT_CONTROL)) {
+        if (GetKeyPressed() == KEY_V) {
+          paste_text(&text, &cursor, &lines);
+        }
+      }
     }
     
     //Drawing
@@ -312,10 +327,23 @@ int main(void)
     BeginDrawing();
       ClearBackground(BLACK);
       
-      DrawTextEx(font, text.text, (Vector2){ 20.0f, 20.0f, }, (float)font.baseSize, 2, WHITE);
+      DrawTextEx(font, text.text, (Vector2){ 72.0f, 20.0f, }, (float)font.baseSize, 2, WHITE);
+
+      //lines num
+      for (size_t i = 1; i < lines.size+1; ++i) {
+        int mul = 3;
+        if (i > 9) mul = 2;
+        if (i > 99) mul = 1;
+        if (i > 999) mul = 0;
+
+        const char *t = TextFormat("%d", i);
+        float w = MeasureText("W", 18);
+        Vector2 pos = { 18.0f+(w*mul), 20.0f+(22.0f*(i-1))};
+        DrawTextEx(font, t, pos, (float)font.baseSize, 2, GRAY);
+      }
 
       DrawText(TextFormat(
-        "abs: %d, col: %d, Line %d/%d - %d|%d", 
+        "> %d, %d,%d          %d|%d|%d", 
         cursor.pos, cursor.line_pos, cursor.current_line, cursor.line_num, 
         lines.lines[cursor.current_line].start,
         lines.lines[cursor.current_line].end
@@ -325,7 +353,7 @@ int main(void)
       if (frames < 20 || frames > 40) {
         char subtext[cursor.line_pos+1];
         memcpy(subtext, text.text+lines.lines[cursor.current_line].start, cursor.line_pos);
-        DrawText("|", 18+(MeasureText("W", 18)*cursor.line_pos), 20+(22*cursor.current_line), 20, RED);
+        DrawText("|", 72+(MeasureText("W", 18)*cursor.line_pos), 20+(22*cursor.current_line), 20, RED);
       }
      
       DrawFPS(20, GH-30);
