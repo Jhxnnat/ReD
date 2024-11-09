@@ -9,7 +9,7 @@
 typedef struct {
   size_t capacity;
   size_t size;
-  char *text;
+  char   *text;
 } Text;
 
 typedef struct {
@@ -20,14 +20,17 @@ typedef struct {
 typedef struct {
   size_t size;
   size_t capacity;
-  Line *lines;
+  Line   *lines;
 } Lines;
 
 typedef struct {
   size_t pos; 
-  size_t line_num;
-  size_t line_pos;
+  size_t line_num; //TODO change this to: row or line_amount
+  size_t line_pos; //TODO change this to: col (column)
   size_t current_line;
+  bool   is_selecting;
+  size_t selection_begin;
+  size_t selection_end;
 } Cursor;
 
 void init_text(Text *t, size_t size) {
@@ -105,6 +108,9 @@ void init_cursor(Cursor *c) {
   c->line_num = 0;
   c->line_pos = 0;
   c->current_line = 0;
+  c->is_selecting = false;
+  c->selection_begin = 0;
+  c->selection_end = 0;
 }
 
 void init_lines(Lines *lines, size_t initial_capacity) {
@@ -152,8 +158,10 @@ void add_line(Lines *lines, size_t line_num, size_t start, size_t end) { //line 
     lines->size++;
 }
 
-void new_line(Lines *lines, Cursor *c) { //TODO this sould just insert_text('\n').. etc
-  ssize_t start = c->pos;
+void new_line(Text *text, Lines *lines, Cursor *c) { //TODO this sould just insert_text('\n').. etc
+  insert_text(text, '\n', c, lines); 
+
+  size_t start = c->pos;
   size_t end = lines->lines[c->current_line].end;
 
   lines->lines[c->current_line].end = c->pos;
@@ -204,11 +212,12 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) { //TODO there is a ti
   else if (cursor->current_line > lines->size) cursor->current_line = lines->size;
 
   size_t current_line = cursor->current_line;
-  size_t len = lines->lines[prev_line].end - lines->lines[prev_line].start - 1;
-  size_t len_ = lines->lines[current_line].end - lines->lines[current_line].start;
-  if (len_ <= cursor->line_pos) {
-    cursor->line_pos = lines->lines[current_line].end - lines->lines[current_line].start - 1;
+  // size_t len = lines->lines[prev_line].end - lines->lines[prev_line].start - 1;
+  size_t _len = lines->lines[current_line].end - lines->lines[current_line].start;
+  if (_len <= cursor->line_pos) {
     cursor->pos = lines->lines[current_line].end-1;
+    if (_len <= 0) cursor->line_pos = 0;
+    else cursor->line_pos = _len-1;
   }
   else {
     //cursor.line_pos remains the same
@@ -221,7 +230,8 @@ void paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for \n,
   size_t len = strlen(source);
   
   for (size_t i = 0; i < len; ++i) {
-    insert_text(text, source[i], cursor, lines);
+    if (source[i] == '\n') new_line(text, lines, cursor);
+    else insert_text(text, source[i], cursor, lines);
   }
 }
 
@@ -241,7 +251,7 @@ int main(void)
   SetTargetFPS(60);
   
   Font font = LoadFontEx("assets/cascadia-font.ttf", 20, 0, 250);
-  int frames = 0;
+  // int frames = 0;
   float input_delay = 0.1f; //when key is constantly pressed
   float input_lasttime = 0.0f;
   int key_ = 0;
@@ -249,8 +259,8 @@ int main(void)
 
     //Update
     //---------------------------------------------
-    frames++;
-    if (frames > 60) frames = 0;
+    // frames++;
+    // if (frames > 60) frames = 0;
 
     //writing
     int key = GetCharPressed();
@@ -272,24 +282,30 @@ int main(void)
       if (IsKeyDown(KEY_RIGHT) && cursor.pos < text.capacity) { 
         cursor_move_h(&cursor, &lines, false);
         input_lasttime = current_time;
+
+        cursor.selection_end = cursor.pos;
       } 
       if (IsKeyDown(KEY_LEFT) && cursor.pos > 0) {
         cursor_move_h(&cursor, &lines, true);
         input_lasttime = current_time;
+
+        cursor.selection_begin = cursor.pos;
       }
       if (IsKeyDown(KEY_UP)) {
         cursor_move_v(&cursor, &lines, -1);
         input_lasttime = current_time;
+
+        cursor.selection_begin = cursor.pos;
       }
       if (IsKeyDown(KEY_DOWN)) {
         cursor_move_v(&cursor, &lines, 1);
         input_lasttime = current_time;
+
+        cursor.selection_end = cursor.pos; 
       }
 
       if (IsKeyDown(KEY_ENTER)) {
-        insert_text(&text, '\n', &cursor, &lines); 
-        // cursor.pos++;
-        new_line(&lines, &cursor);
+        new_line(&text, &lines, &cursor);
 
         for (size_t i = 0; i < lines.size; i++) {
           printf("Line %zu: start = %zu, end = %zu\n", 
@@ -315,6 +331,15 @@ int main(void)
         input_lasttime = current_time;
       }
 
+      if (IsKeyDown(KEY_LEFT_SHIFT)) {
+        cursor.is_selecting = true;
+        if (cursor.selection_end - cursor.selection_begin <= 0) {
+          cursor.selection_begin = cursor.pos;
+          cursor.selection_end = cursor.pos;
+        }
+      }
+      else if (IsKeyReleased(KEY_LEFT_SHIFT)) cursor.is_selecting = false;
+
       if (IsKeyDown(KEY_LEFT_CONTROL)) {
         if (GetKeyPressed() == KEY_V) {
           paste_text(&text, &cursor, &lines);
@@ -328,6 +353,8 @@ int main(void)
       ClearBackground(BLACK);
       
       DrawTextEx(font, text.text, (Vector2){ 72.0f, 20.0f, }, (float)font.baseSize, 2, WHITE);
+
+      //TODO: how do i draw text selection??? 
 
       //lines num
       for (size_t i = 1; i < lines.size+1; ++i) {
@@ -343,18 +370,15 @@ int main(void)
       }
 
       DrawText(TextFormat(
-        "> %d, %d,%d          %d|%d|%d", 
+        "> %d, %d,%d          %d|%d|%d    shift: %d", 
         cursor.pos, cursor.line_pos, cursor.current_line, cursor.line_num, 
         lines.lines[cursor.current_line].start,
-        lines.lines[cursor.current_line].end
+        lines.lines[cursor.current_line].end,
+        cursor.is_selecting
       ), 160, GH - 30, 20, ORANGE);
 
       //cursor
-      if (frames < 20 || frames > 40) {
-        char subtext[cursor.line_pos+1];
-        memcpy(subtext, text.text+lines.lines[cursor.current_line].start, cursor.line_pos);
-        DrawText("|", 72+(MeasureText("W", 18)*cursor.line_pos), 20+(22*cursor.current_line), 20, RED);
-      }
+      DrawText("|", 72+(MeasureText("W", 18)*cursor.line_pos), 20+(22*cursor.current_line), 20, RED);
      
       DrawFPS(20, GH-30);
 
