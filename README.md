@@ -1,4 +1,6 @@
-# Basic text editor using raylib
+# ReD is a simple retro looking text editor made with raylib
+
+Red stants for Retro eDitor, maybe Raylib eDitor too (just coincidence)
 
 ### some sources: 
 

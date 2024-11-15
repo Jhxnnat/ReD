@@ -5,6 +5,11 @@
 
 #define GW 800
 #define GH 450
+#define RTEXT_LEFT 72
+#define RTEXT_TOP 22
+#define RTEXT_LEFT_LINES 18
+#define RFONT_SPACING 2
+#define RFONT_SIZE 24
 
 typedef struct {
   size_t capacity;
@@ -317,23 +322,20 @@ int main(void)
   Cursor cursor;
   init_cursor(&cursor);
 
-  InitWindow(GW, GH, "JText - Dev [0.0.1]");
-  SetTargetFPS(60);
+  InitWindow(GW, GH, "Retro eDitor - [0.0.1]");
   
-  Font font = LoadFontEx("./assets/cascadia-font-l.ttf", 20, 0, 250);
-  
+  Font font = LoadFontEx("./assets/iosevka-font.ttf", RFONT_SIZE, 0, 250);
   // int frames = 0;
   float input_delay = 0.1f; //when key is constantly pressed
   float input_lasttime = 0.0f;
-  int font_width = MeasureText("W", 18);
+  int font_width = MeasureText("W", font.baseSize);
+  Vector2 font_measuring = MeasureTextEx(font, "W", font.baseSize, RFONT_SPACING);
   int key_ = 0;
   while (!WindowShouldClose()) {
 
     //Update
     //---------------------------------------------
-    // frames++;
-    // if (frames > 60) frames = 0;
-
+    //
     //writing
     int key = GetCharPressed();
     while (key > 0) {
@@ -416,7 +418,7 @@ int main(void)
     BeginDrawing();
     ClearBackground(BLACK);
     
-    DrawTextEx(font, text.text, (Vector2){ 72.0f, 20.0f, }, (float)font.baseSize, 2, WHITE);
+    DrawTextEx(font, text.text, (Vector2){ RTEXT_LEFT, RTEXT_TOP }, (float)font.baseSize, RFONT_SPACING, WHITE);
 
     //lines num
     for (size_t i = 1; i < lines.size+1; ++i) {
@@ -426,9 +428,8 @@ int main(void)
       if (i > 999) mul = 0;
 
       const char *t = TextFormat("%d", i);
-      float w = MeasureText("W", 18);
-      Vector2 pos = { 18.0f+(w*mul), 20.0f+(22.0f*(i-1))};
-      DrawTextEx(font, t, pos, (float)font.baseSize, 2, GRAY);
+      Vector2 pos = { RTEXT_LEFT_LINES+(font_measuring.x*mul), RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
+      DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
     }
 
     DrawText(TextFormat(
@@ -439,8 +440,26 @@ int main(void)
       cursor.selection_begin, cursor.selection_end
     ), 160, GH - 30, 20, ORANGE);
 
-    //cursor
-    DrawText("|", 72+(font_width*cursor.line_pos), 20+(22*cursor.current_line), 20, RED); //TODO this magic number '72' sould be a const or something
+    ////Cursor --------------------
+    //MeasureText from start of the line to cursor
+    size_t _range = cursor.pos - lines.lines[cursor.current_line].start;
+    if (_range <= 0) {
+      Vector2 _cursor_pos = { 
+        RTEXT_LEFT, 
+        RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line) 
+      };
+      DrawText("|", _cursor_pos.x, _cursor_pos.y, font.baseSize, RED);
+    } else {
+      char _part[_range];
+      strncpy(_part, text.text+lines.lines[cursor.current_line].start, _range);
+      _part[_range] = '\0';
+      Vector2 _text_measure = MeasureTextEx(font, _part, font.baseSize, RFONT_SPACING);
+      Vector2 _cursor_pos = { 
+        RTEXT_LEFT+_text_measure.x, 
+        RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line) 
+      };
+      DrawText("|", _cursor_pos.x, _cursor_pos.y, font.baseSize, RED);
+    }
 
     //selection
     size_t select_range = cursor.selection_end - cursor.selection_begin;
@@ -450,36 +469,36 @@ int main(void)
     int _x;
     int _w;
     int _y; 
-    int _h = 18; //TODO find a way to not to hardcode this 
+    int _h = font_measuring.y;
 
+    //TODO do something like with the cursor to get the selection right
     //one line selected
     if (select_line_range == 0 && select_range > 0) {
-      _x = 72+(font_width*(cursor.selection_begin-lines.lines[cursor.current_line].start));
-      _w = (font_width* (select_range));
-      _y = 20 + (22 * cursor.current_line);
+      _x = RTEXT_LEFT+(font_measuring.x*(cursor.selection_begin-lines.lines[cursor.current_line].start));
+      _w = (font_measuring.x* (select_range));
+      _y = RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line);
       DrawRectangle(_x, _y, _w, _h, select_color);
     }
     else if (select_line_range > 0 && select_range > 0) {
       for (size_t i = cursor.selection_line_begin; i <= cursor.selection_line_end; ++i) {
-        _y = 20 + (22 * i);
+        _y = RTEXT_TOP+(font_measuring.y * i);
 
         if (i == cursor.selection_line_begin) {
           //first line
-          _x = 72+(font_width*(cursor.selection_begin-lines.lines[i].start));
+          _x = RTEXT_TOP+(font_width*(cursor.selection_begin-lines.lines[i].start));
           _w = (font_width*(lines.lines[i].end-cursor.selection_begin));
           DrawRectangle(_x, _y, _w, _h, select_color);
         }
         else if (i == cursor.selection_line_end) {
           //last line
-          _x = 72;
+          _x = RTEXT_TOP;
           _w = (font_width*(cursor.selection_end-lines.lines[i].start));
           DrawRectangle(_x, _y, _w, _h, select_color);
         }
         else {
           //between lines
-          _x = 72;
+          _x = RTEXT_TOP;
           _w = (font_width*(lines.lines[i].end-lines.lines[i].start));
-          // DrawRectangle(_x, _y, _w, _h, (Color){255, 10, 255, 80});
           DrawRectangle(_x, _y, _w, _h, select_color);
         }
       }
