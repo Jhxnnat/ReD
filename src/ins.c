@@ -1,14 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include <raylib.h>
-#include "text.h"
-
-void init_text(Text *t, size_t size) {
-  t->text = malloc(size * sizeof(char));
-  t->size = size;
-  t->capacity = 0;
-}
+#include <stdio.h>
+#include "ins.h"
 
 void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
   if (cu->pos < 0) cu->pos = 0;
@@ -71,9 +63,53 @@ void delete_text(Text *t, Cursor *cur, Lines *lines) {
   t->capacity--;
 }
 
-void free_text(Text *t) {
-  free(t->text);
-  t->text = NULL;
-  t->capacity = t->size = 0;
+
+void resize_lines(Lines *lines) {
+    size_t new_capacity = lines->capacity * 2;
+    Line *new_lines = realloc(lines->lines, sizeof(Line) * new_capacity);
+    if (new_lines == NULL) {
+        // Handle realloc failure
+        fprintf(stderr, "Memory reallocation failed\n");
+        free(lines->lines); // free original allocation if realloc fails
+        exit(1);
+    }
+
+    lines->lines = new_lines;
+    lines->capacity = new_capacity;
 }
 
+void add_line(Lines *lines, size_t line_num, size_t start, size_t end) { //line num is where we want to add
+    if (lines->size == lines->capacity) {
+        resize_lines(lines);
+    }
+    
+    //update rest of lines
+    size_t prev_start;
+    size_t prev_end;
+    for (size_t i = line_num; i < lines->size; ++i) { 
+      prev_start = lines->lines[i].start;
+      prev_end = lines->lines[i].end;
+      lines->lines[i+1].start = prev_start;
+      lines->lines[i+1].end = prev_end;
+    }  
+
+    lines->lines[line_num].start = start;
+    lines->lines[line_num].end = end;
+    lines->size++;
+}
+
+void new_line(Text *text, Lines *lines, Cursor *c) {
+  insert_text(text, '\n', c, lines); 
+
+  size_t start = c->pos;
+  size_t end = lines->lines[c->current_line].end;
+
+  lines->lines[c->current_line].end = c->pos;
+
+  c->line_pos = 0;
+  c->line_num++;
+  c->current_line++;
+  c->selection_line_begin = c->current_line;
+  c->selection_line_end = c->current_line;
+  add_line(lines, c->current_line, start, end);
+}
