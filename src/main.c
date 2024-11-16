@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "raylib.h"
+#include "text.h"
 
 #define GW 800
 #define GH 450
@@ -10,108 +11,6 @@
 #define RTEXT_LEFT_LINES 18
 #define RFONT_SPACING 2
 #define RFONT_SIZE 24
-
-typedef struct {
-  size_t capacity;
-  size_t size;
-  char   *text;
-} Text;
-
-typedef struct {
-  size_t start;
-  size_t end;
-} Line;
-
-typedef struct {
-  size_t size;
-  size_t capacity;
-  Line   *lines;
-} Lines;
-
-typedef struct {
-  size_t pos; 
-  size_t line_num; //TODO change this to: row or line_amount
-  size_t line_pos; //TODO change this to: col (column)
-  size_t current_line;
-  bool   is_selecting;
-  size_t selection_begin; 
-  size_t selection_end;
-  size_t selection_line_begin;
-  size_t selection_line_end;
-} Cursor;
-
-void init_text(Text *t, size_t size) {
-  t->text = malloc(size * sizeof(char));
-  t->size = size;
-  t->capacity = 0;
-}
-
-void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
-  if (cu->pos < 0) cu->pos = 0;
-  if (cu->pos > t->capacity) cu->pos = (int)(t->capacity);
-
-  if (t->capacity >= t->size) {
-    t->size *= 2;
-    char *temp = realloc(t->text, (t->size) * sizeof(char));
-    if (temp == NULL) {
-      printf("Error realloc!!!\n");
-      exit(0);
-    } else {
-      t->text = temp;
-    }
-  }
-  t->capacity++;
-  memmove(t->text+cu->pos+1, t->text+cu->pos, t->capacity-cu->pos+1);
-  t->text[cu->pos] = c;
-  cu->pos++;
-  cu->line_pos++;
-  lines->lines[cu->current_line].end += 1;
-  if (cu->current_line < cu->line_num) {
-    printf("updating lines!\n");
-    for (size_t i = cu->current_line+1; i <= cu->line_num; i++) { //Move other lines when inserting before last line
-      lines->lines[i].start++;
-      lines->lines[i].end++;
-      printf("updating line %zu, start: %zu, end: %zu\n", i, lines->lines[i].start, lines->lines[i].end);
-    }
-  }
-
-  cu->selection_begin = cu->pos;
-  cu->selection_end = cu->pos;
-}
-
-void delete_text(Text *t, Cursor *cur, Lines *lines) {
-  if ((t->capacity <= 0) || (cur->pos <= 0)) return; 
-  
-  if (cur->line_pos == 0) {
-    cur->line_num--;
-    cur->current_line--;
-    cur->line_pos = lines->lines[cur->current_line].end-lines->lines[cur->current_line].start-1;
-    lines->lines[cur->current_line].end = lines->lines[cur->current_line+1].end-1;
-    lines->size--;
-    for (size_t i = cur->current_line+1; i < lines->size; i++) {
-      lines->lines[i].start = lines->lines[i+1].start;
-      lines->lines[i].end = lines->lines[i+1].end;
-    }
-  } 
-  else {
-    cur->line_pos--;
-    lines->lines[cur->current_line].end--;
-    for (size_t i = cur->current_line+1; i <= lines->size; ++i) {
-      lines->lines[i].start--;
-      lines->lines[i].end--;
-    }
-  }
-  cur->pos--;
-  memmove(t->text+cur->pos, t->text+cur->pos+1, t->capacity-cur->pos+1);
-  t->text[t->capacity] = '\0';
-  t->capacity--;
-}
-
-void free_text(Text *t) {
-  free(t->text);
-  t->text = NULL;
-  t->capacity = t->size = 0;
-}
 
 void init_cursor(Cursor *c) {
   c->pos = 0;
@@ -257,15 +156,18 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
 
   size_t prev_line = cursor->current_line;
   cursor->current_line += dir;
-  if (cursor->current_line < 0) cursor->current_line = 0;
-  else if (cursor->current_line > lines->size) cursor->current_line = lines->size;
-
   size_t current_line = cursor->current_line;
-  size_t _len = lines->lines[current_line].end - lines->lines[current_line].start;
-  if (_len <= cursor->line_pos) {
-    cursor->pos = lines->lines[current_line].end-1;
-    if (_len <= 0) cursor->line_pos = 0;
-    else cursor->line_pos = _len-1;
+  size_t _prev_len = lines->lines[prev_line].end - lines->lines[prev_line].start;
+  size_t _cur_len = lines->lines[current_line].end - lines->lines[current_line].start;
+  if (_cur_len < _prev_len) {
+    if (_cur_len <= 0) { 
+      cursor->line_pos = 0; 
+      cursor->pos = lines->lines[current_line].start;
+    }
+    else {
+      cursor->line_pos = _cur_len-1;
+      cursor->pos = lines->lines[current_line].end-1;
+    }
   }
   else {
     //cursor.line_pos remains the same
@@ -280,18 +182,27 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
     }
     else if (cursor->selection_begin == prev_pos) {
       cursor->selection_begin = cursor->selection_end;
-      // cursor->selection_line_begin = cursor->selection_line_end;
+      cursor->selection_line_begin = cursor->selection_line_end;
       cursor->selection_end = cursor->pos;
       cursor->selection_line_end = cursor->current_line;
-      printf("this case has been\n");
+      if (cursor->selection_end < cursor->selection_begin) {
+        size_t temp = cursor->selection_end;
+        cursor->selection_end = cursor->selection_begin;
+        cursor->selection_begin = temp;
+      }
     }
   }
   else {
-    if (cursor->selection_end == prev_pos) { //TODO when selection_line_end != selection_line_begin this does not work the same
+    if (cursor->selection_end == prev_pos) {
       cursor->selection_end = cursor->selection_begin;
-      // cursor->selection_line_end = cursor->selection_line_begin;
+      cursor->selection_line_end = cursor->selection_line_begin;
       cursor->selection_begin = cursor->pos;
       cursor->selection_line_begin = cursor->current_line;
+      if (cursor->selection_end < cursor->selection_begin) {
+        size_t temp = cursor->selection_end;
+        cursor->selection_end = cursor->selection_begin;
+        cursor->selection_begin = temp;
+      }
     }
     else if (cursor->selection_end > prev_pos) {
       cursor->selection_begin = cursor->pos;
@@ -306,9 +217,37 @@ void paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for, \t
   
   for (size_t i = 0; i < len; ++i) {
     if (source[i] == '\n') new_line(text, lines, cursor);
+    else if (source[i] == '\0') continue;
     else insert_text(text, source[i], cursor, lines);
   }
 }
+
+void copy_text(Text *text, Cursor *cursor, Lines *lines) { //TODO add copy line feature if nothing is selected
+  size_t range = cursor->selection_end - cursor->selection_begin;
+  if (range <= 0) return;
+  char copied_text[range];
+  strncpy(copied_text, text->text + cursor->selection_begin, range);
+  copied_text[range] = '\0';
+  printf("copied_text: %s", copied_text);
+  SetClipboardText(copied_text);
+  cursor->selection_begin = cursor->pos;
+  cursor->selection_end = cursor->pos;
+  cursor->selection_line_begin = cursor->current_line;
+  cursor->selection_line_end = cursor->current_line;
+}
+
+Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
+  if (range <= 0) {
+    Vector2 measurement_ = { 0, 0 };
+    return measurement_;
+  }
+  char part[range];
+  strncpy(part, text->text+start, range);
+  part[range] = '\0';
+  Vector2 measurement = MeasureTextEx(font, part, font.baseSize, RFONT_SPACING);
+  return measurement;
+}
+
 
 int main(void) 
 {
@@ -325,12 +264,14 @@ int main(void)
   InitWindow(GW, GH, "Retro eDitor - [0.0.1]");
   
   Font font = LoadFontEx("./assets/iosevka-font.ttf", RFONT_SIZE, 0, 250);
-  // int frames = 0;
+  if (!IsFontValid(font)) {
+    font = GetFontDefault();
+  }
   float input_delay = 0.1f; //when key is constantly pressed
   float input_lasttime = 0.0f;
-  int font_width = MeasureText("W", font.baseSize);
+  // int font_width = MeasureText("W", font.baseSize);
   Vector2 font_measuring = MeasureTextEx(font, "W", font.baseSize, RFONT_SPACING);
-  int key_ = 0;
+  // int key_ = 0;
   while (!WindowShouldClose()) {
 
     //Update
@@ -386,8 +327,8 @@ int main(void)
       }
 
       if (IsKeyDown(KEY_TAB)) { //TODO this could be a loop that iterates n (indent config) times!
-        insert_text(&text, ' ', &cursor, &lines);
-        insert_text(&text, ' ', &cursor, &lines);
+        insert_text(&text, '\t', &cursor, &lines);
+        // insert_text(&text, ' ', &cursor, &lines);
         input_lasttime = current_time;
       }
 
@@ -407,8 +348,11 @@ int main(void)
       if (IsKeyUp(KEY_LEFT_SHIFT)) cursor.is_selecting = false;
 
       if (IsKeyDown(KEY_LEFT_CONTROL)) {
-        if (GetKeyPressed() == KEY_V) {
+        if (IsKeyPressed(KEY_V)) {
           paste_text(&text, &cursor, &lines);
+        }
+        if (IsKeyPressed(KEY_C)) {
+          copy_text(&text, &cursor, &lines);
         }
       }
     }
@@ -433,10 +377,9 @@ int main(void)
     }
 
     DrawText(TextFormat(
-      "> %d, %d,%d          %d|%d|%d    select: %d, %d", 
-      cursor.pos, cursor.line_pos, cursor.current_line, cursor.line_num, 
-      lines.lines[cursor.current_line].start,
-      lines.lines[cursor.current_line].end,
+      "%d --- col %d, row %d --- [%d, %d] --- select: %d, %d", 
+      cursor.pos, cursor.line_pos, cursor.current_line,
+      lines.lines[cursor.current_line].start, lines.lines[cursor.current_line].end,
       cursor.selection_begin, cursor.selection_end
     ), 160, GH - 30, 20, ORANGE);
 
@@ -464,41 +407,43 @@ int main(void)
     //selection
     size_t select_range = cursor.selection_end - cursor.selection_begin;
     size_t select_line_range = cursor.selection_line_end - cursor.selection_line_begin;
-    Color select_color = {255, 255, 255, 80 };
+    Color select_color = { 255, 255, 255, 80 };
 
-    int _x;
-    int _w;
-    int _y; 
-    int _h = font_measuring.y;
+    int _x, _w, _y, _h = font_measuring.y;
 
-    //TODO do something like with the cursor to get the selection right
     //one line selected
     if (select_line_range == 0 && select_range > 0) {
-      _x = RTEXT_LEFT+(font_measuring.x*(cursor.selection_begin-lines.lines[cursor.current_line].start));
-      _w = (font_measuring.x* (select_range));
+      size_t _plsize = cursor.selection_begin-lines.lines[cursor.current_line].start;
+      Vector2 _selection_l_measure = measure_text_part(&text, font, lines.lines[cursor.current_line].start, _plsize);
+      Vector2 _selection_measure = measure_text_part(&text, font, cursor.selection_begin, select_range);
+      _x = RTEXT_LEFT+(_selection_l_measure.x);
+      _w = _selection_measure.x;
       _y = RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line);
       DrawRectangle(_x, _y, _w, _h, select_color);
     }
     else if (select_line_range > 0 && select_range > 0) {
       for (size_t i = cursor.selection_line_begin; i <= cursor.selection_line_end; ++i) {
-        _y = RTEXT_TOP+(font_measuring.y * i);
+        _y = RTEXT_TOP+(font_measuring.y * i) + (RFONT_SPACING * i);
 
-        if (i == cursor.selection_line_begin) {
-          //first line
-          _x = RTEXT_TOP+(font_width*(cursor.selection_begin-lines.lines[i].start));
-          _w = (font_width*(lines.lines[i].end-cursor.selection_begin));
+        if (i == cursor.selection_line_begin) { //first line
+          size_t _plsize = cursor.selection_begin-lines.lines[i].start;
+          Vector2 _selection_l_measure = measure_text_part(&text, font, lines.lines[i].start, _plsize);
+          Vector2 _selection_measure = measure_text_part(&text, font, cursor.selection_begin, lines.lines[i].end - cursor.selection_begin);
+          _x = RTEXT_LEFT+_selection_l_measure.x;
+          _w = _selection_measure.x;
           DrawRectangle(_x, _y, _w, _h, select_color);
         }
-        else if (i == cursor.selection_line_end) {
-          //last line
-          _x = RTEXT_TOP;
-          _w = (font_width*(cursor.selection_end-lines.lines[i].start));
+        else if (i == cursor.selection_line_end) { //last line
+          Vector2 _selection_measure = measure_text_part(&text, font, lines.lines[i].start, cursor.selection_end-lines.lines[i].start);
+          _x = RTEXT_LEFT;
+          _w = _selection_measure.x;
           DrawRectangle(_x, _y, _w, _h, select_color);
         }
-        else {
-          //between lines
-          _x = RTEXT_TOP;
-          _w = (font_width*(lines.lines[i].end-lines.lines[i].start));
+        else { //between lines
+          _x = RTEXT_LEFT;
+          size_t _range = lines.lines[i].end - lines.lines[i].start;
+          Vector2 _line_measure = measure_text_part(&text, font, lines.lines[i].start, _range);
+          _w = _line_measure.x;
           DrawRectangle(_x, _y, _w, _h, select_color);
         }
       }

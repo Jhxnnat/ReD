@@ -12,11 +12,13 @@
 - [ ] vertical scroll
 - [x] line nums
 - [x] selection
-    - [ ] update to be more 'dynamic'
+    - [x] update to be more 'dynamic'
+    - [ ] selecting vert nav bug
 - [ ] copy 
 - [x] paste
-    - [ ] test
+    - [ ] test and improve
 - [ ] write and test
+- [ ] writte the respectives header files
 
 ## posible editor features
 
