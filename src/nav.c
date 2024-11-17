@@ -120,3 +120,30 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
   }
 }
 
+void cursor_move_sol(Cursor *cursor, Lines *lines) {
+  cursor->pos = lines->lines[cursor->current_line].start;
+  cursor->line_pos = 0;
+}
+void cursor_move_eol(Cursor *cursor, Lines *lines) {
+  size_t _len = lines->lines[cursor->current_line].end - lines->lines[cursor->current_line].start;
+  if (_len > 0) {
+    int _off = (lines->size < 2 || cursor->current_line == lines->size-1) ? 0 : 1;
+    cursor->pos = lines->lines[cursor->current_line].end - _off;
+    cursor->line_pos = _len;
+  } else {
+    cursor->pos = lines->lines[cursor->current_line].start;
+    cursor->line_pos = 0;
+  }
+}
+void cursor_move_start(Cursor *cursor, Lines *lines) {
+  cursor->pos = 0;
+  cursor->line_pos = 0;
+  cursor->current_line = 0;
+}
+void cursor_move_end(Cursor *cursor, Lines *lines) {
+  cursor->current_line = lines->size-1;
+  cursor->pos = lines->lines[cursor->current_line].start;
+  cursor->line_pos = 0;
+  cursor_move_eol(cursor, lines);
+}
+

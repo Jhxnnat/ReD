@@ -12,31 +12,6 @@
 #define RFONT_SPACING 2
 #define RFONT_SIZE 24
 
-void paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for, \t, \r etc to insert them manualy
-  const char *source = GetClipboardText();
-  size_t len = strlen(source);
-  
-  for (size_t i = 0; i < len; ++i) {
-    if (source[i] == '\n') new_line(text, lines, cursor);
-    else if (source[i] == '\0') continue;
-    else insert_text(text, source[i], cursor, lines);
-  }
-}
-
-void copy_text(Text *text, Cursor *cursor, Lines *lines) { //TODO add copy line feature if nothing is selected
-  size_t range = cursor->selection_end - cursor->selection_begin;
-  if (range <= 0) return;
-  char copied_text[range];
-  strncpy(copied_text, text->text + cursor->selection_begin, range);
-  copied_text[range] = '\0';
-  printf("copied_text: %s", copied_text);
-  SetClipboardText(copied_text);
-  cursor->selection_begin = cursor->pos;
-  cursor->selection_end = cursor->pos;
-  cursor->selection_line_begin = cursor->current_line;
-  cursor->selection_line_end = cursor->current_line;
-}
-
 Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
   if (range <= 0) {
     Vector2 measurement_ = { 0, 0 };
@@ -154,6 +129,23 @@ int main(void)
         if (IsKeyPressed(KEY_C)) {
           copy_text(&text, &cursor, &lines);
         }
+        if (IsKeyPressed(KEY_X)) {
+          cut_text(&text, &cursor, &lines);
+        }
+
+        if (IsKeyPressed(KEY_HOME)) {
+          cursor_move_start(&cursor, &lines);
+        }
+        if (IsKeyPressed(KEY_END)) {
+          cursor_move_end(&cursor, &lines);
+        }
+      }
+
+      if (IsKeyPressed(KEY_HOME)) {
+        cursor_move_sol(&cursor, &lines);
+      }
+      if (IsKeyPressed(KEY_END)) {
+        cursor_move_eol(&cursor, &lines);
       }
     }
     
