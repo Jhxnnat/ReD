@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "raylib.h"
 #include "ins.h"
 
+#define NAME "Retro eDitor - [0.0.1]"
 #define GW 800
 #define GH 450
 #define RTEXT_LEFT 72
@@ -24,19 +26,39 @@ Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
   return measurement;
 }
 
-int main(void) 
+int main(int argc, char **argv) 
 {
   Text text;
-  init_text(&text, 8);
-
+  init_text(&text, 8); //BUG if text is initialized after loading file some bug causes text to have problems when drawing
   Lines lines;
   init_lines(&lines, 10);
   add_line(&lines,0, 0, 0);
-
   Cursor cursor;
   init_cursor(&cursor);
 
-  InitWindow(GW, GH, "Retro eDitor - [0.0.1]");
+  char *FILE_PATH;
+  if (argc == 1) {
+    FILE_PATH = NULL;
+  }
+  else if (argc == 2) {
+    FILE_PATH = argv[1];
+    printf("\nFILE_PATH: %s\n", FILE_PATH);
+    char *source = LoadFileText(FILE_PATH);
+    size_t len = strlen(source);
+    for (size_t i = 0; i < len; ++i) {
+      if (source[i] == '\n') new_line(&text, &lines, &cursor);
+      else if (source[i] == '\0') continue;
+      else insert_text(&text, source[i], &cursor, &lines);
+    }
+    UnloadFileText(source);
+  }
+  else {
+    printf("\nUSAGE: red [FILE_PATH]\n");
+    exit(1);
+  }
+
+
+  InitWindow(GW, GH, NAME);
   
   Font font = LoadFontEx("./assets/iosevka-font.ttf", RFONT_SIZE, 0, 250);
   if (!IsFontValid(font)) {
@@ -154,7 +176,7 @@ int main(void)
     BeginDrawing();
     ClearBackground(BLACK);
     
-    DrawTextEx(font, text.text, (Vector2){ RTEXT_LEFT, RTEXT_TOP }, (float)font.baseSize, RFONT_SPACING, WHITE);
+    DrawTextEx(font, text.text, (Vector2){ RTEXT_LEFT, RTEXT_TOP }, (float)font.baseSize, RFONT_SPACING, GREEN);
 
     //lines num
     for (size_t i = 1; i < lines.size+1; ++i) {

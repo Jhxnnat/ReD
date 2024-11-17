@@ -1,4 +1,5 @@
 #!/bin/bash
+# gcc -c -I. fs.c
 gcc -c -I. ds.c
 gcc -c -I. nav.c 
 gcc -c -I. ins.c

@@ -3,22 +3,33 @@
 - [x] start key holding
 - [x] backspace & enter keyhold
 - [x] arrow navigation
-    - [ ] home-end navigation
+    - [x] home-end navigation
     - [ ] C-arrows nav
 - [x] tab indent
 - [x] supr key
-- [ ] load file
+- [x] load file
 - [ ] save file
-- [ ] vertical scroll
 - [x] line nums
 - [x] selection
     - [x] update to be more 'dynamic'
-    - [ ] selecting vert nav bug
-- [ ] copy 
+    - [x] selecting vert nav bug
+- [x] copy 
 - [x] paste
+- [x] cut
     - [ ] test and improve
+- [x] writte the respectives header files
+- [x] selection stuff (home-end, reset)
+    - [ ] test more and more
+- [ ] vertical scroll
+- [ ] horizontal scroll
+- [ ] relative lines
+- [ ] draw just a part of the text? 
+
 - [ ] write and test
-- [ ] writte the respectives header files
+
+## funny part 
+
+ - [ ] crt-shader
 
 ## posible editor features
 

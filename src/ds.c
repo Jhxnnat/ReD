@@ -3,6 +3,7 @@
 
 void init_text(Text *t, size_t size) {
   t->text = malloc(size * sizeof(char));
+  t->text[size] = '\0';
   t->size = size;
   t->capacity = 0;
 }
