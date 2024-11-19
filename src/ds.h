@@ -18,6 +18,7 @@ typedef struct {
   size_t size;
   size_t capacity;
   Line   *lines;
+  size_t offset;
 } Lines;
 
 typedef struct {

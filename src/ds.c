@@ -27,14 +27,15 @@ void init_cursor(Cursor *c) {
 }
 
 void init_lines(Lines *lines, size_t initial_capacity) {
-    lines->size = 0;
-    lines->capacity = initial_capacity;
-    lines->lines = (Line *)malloc(sizeof(Line) * initial_capacity);
-    if (lines->lines == NULL) {
-        // Handle malloc failure
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(1);
-    }
+  lines->size = 0;
+  lines->capacity = initial_capacity;
+  lines->offset = 0;
+  lines->lines = (Line *)malloc(sizeof(Line) * initial_capacity);
+  if (lines->lines == NULL) {
+      // Handle malloc failure
+      fprintf(stderr, "Memory allocation failed\n");
+      exit(1);
+  }
 }
 
 void free_lines(Lines *lines) {

@@ -7,12 +7,13 @@
 
 #define NAME "Retro eDitor - [0.0.1]"
 #define GW 800
-#define GH 450
+#define GH 600
 #define RTEXT_LEFT 72
 #define RTEXT_TOP 22
 #define RTEXT_LEFT_LINES 18
 #define RFONT_SPACING 2
 #define RFONT_SIZE 24
+#define MAX_LINES 10
 
 Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
   if (range <= 0) {
@@ -50,6 +51,7 @@ int main(int argc, char **argv)
       else if (source[i] == '\0') continue;
       else insert_text(&text, source[i], &cursor, &lines);
     }
+    cursor_move_start(&cursor, &lines);
     UnloadFileText(source);
   }
   else {
@@ -102,10 +104,12 @@ int main(int argc, char **argv)
       if (IsKeyDown(KEY_UP)) {
         cursor_move_v(&cursor, &lines, -1);
         input_lasttime = current_time;
+        if (lines.offset > 0) lines.offset--;
       }
       if (IsKeyDown(KEY_DOWN)) {
         cursor_move_v(&cursor, &lines, 1);
         input_lasttime = current_time;
+        if (lines.offset < lines.size-1) lines.offset++;
       }
 
       if (IsKeyDown(KEY_ENTER)) {
@@ -176,26 +180,37 @@ int main(int argc, char **argv)
     BeginDrawing();
     ClearBackground(BLACK);
     
-    DrawTextEx(font, text.text, (Vector2){ RTEXT_LEFT, RTEXT_TOP }, (float)font.baseSize, RFONT_SPACING, GREEN);
 
-    //lines num
-    for (size_t i = 1; i < lines.size+1; ++i) {
+    //lines num TODO draw part of lines - relative lines
+    size_t text_range = 0;
+    int _row = 1;
+    for (size_t i = 1+lines.offset; i < lines.size+1; ++i) {
       int mul = 3;
       if (i > 9) mul = 2;
       if (i > 99) mul = 1;
       if (i > 999) mul = 0;
 
       const char *t = TextFormat("%d", i);
-      Vector2 pos = { RTEXT_LEFT_LINES+(font_measuring.x*mul), RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
+      Vector2 pos = { RTEXT_LEFT_LINES+(font_measuring.x*mul), RTEXT_TOP+(font_measuring.y*(_row-1))+(RFONT_SPACING*(_row-1)) };
       DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
+      
+      text_range += lines.lines[i-1].end - lines.lines[i-1].start;
+
+      _row++;
+      if (_row > MAX_LINES) break;
     }
 
+    //Drawing part of the text
+    const char *text_part = TextSubtext(text.text, lines.lines[lines.offset].start, text_range);
+    DrawTextEx(font, text_part, (Vector2){ RTEXT_LEFT, RTEXT_TOP }, (float)font.baseSize, RFONT_SPACING, GREEN);
+
     DrawText(TextFormat(
-      "%d --- col %d, row %d --- [%d, %d] --- select: %d, %d", 
+      "%d --- col %d, row %d --- [%d, %d] --- select: %d, %d --- %d", 
       cursor.pos, cursor.line_pos, cursor.current_line,
       lines.lines[cursor.current_line].start, lines.lines[cursor.current_line].end,
-      cursor.selection_begin, cursor.selection_end
-    ), 160, GH - 30, 20, ORANGE);
+      cursor.selection_begin, cursor.selection_end,
+      text_range
+    ), 140, GH - 30, 20, ORANGE);
 
     ////Cursor --------------------
     //MeasureText from start of the line to cursor
@@ -203,7 +218,7 @@ int main(int argc, char **argv)
     if (_range <= 0) {
       Vector2 _cursor_pos = { 
         RTEXT_LEFT, 
-        RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line) 
+        RTEXT_TOP+(font_measuring.y*(cursor.current_line-lines.offset))+(RFONT_SPACING*(cursor.current_line-lines.offset))
       };
       DrawText("|", _cursor_pos.x, _cursor_pos.y, font.baseSize, RED);
     } else {
@@ -213,7 +228,7 @@ int main(int argc, char **argv)
       Vector2 _text_measure = MeasureTextEx(font, _part, font.baseSize, RFONT_SPACING);
       Vector2 _cursor_pos = { 
         RTEXT_LEFT+_text_measure.x, 
-        RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line) 
+        RTEXT_TOP+(font_measuring.y*(cursor.current_line-lines.offset))+(RFONT_SPACING*cursor.current_line-lines.offset) 
       };
       DrawText("|", _cursor_pos.x, _cursor_pos.y, font.baseSize, RED);
     }
