@@ -207,14 +207,14 @@ int main(int argc, char **argv)
     }
 
     //Drawing part of the text
-    // size_t __range = lines.lines[lines.offset + MAX_LINES - 1].end - lines.lines[lines.offset].start;
-    // const char *text_part = TextSubtext(text.text, lines.lines[lines.offset].start, __range);
-    // Vector2 main_text_pos = {
-    //   RTEXT_LEFT,
-    //   RTEXT_TOP+(font_measuring.y*lines.offset)+(RFONT_SPACING*lines.offset)
-    // };
+    size_t __range = lines.lines[lines.offset + MAX_LINES - 1].end - lines.lines[lines.offset].start;
+    const char *text_part = TextSubtext(text.text, lines.lines[lines.offset].start, __range);
+    Vector2 main_text_pos = {
+      RTEXT_LEFT,
+      RTEXT_TOP+(font_measuring.y*lines.offset)+(RFONT_SPACING*lines.offset)
+    };
     DrawTextEx(font, text.text, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING, GRAY);
-    // DrawTextEx(font, text_part, main_text_pos, (float)font.baseSize, RFONT_SPACING, GREEN);
+    DrawTextEx(font, text_part, main_text_pos, (float)font.baseSize, RFONT_SPACING, GREEN);
 
     ////Cursor --------------------
     //MeasureText from start of the line to cursor

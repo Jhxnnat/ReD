@@ -63,7 +63,7 @@ void __selection_move_down(Cursor *cursor, Lines *lines, size_t prev_pos) {
 
 void __update_cam_offset(Cursor *cursor, Lines *lines, int dir) {
   size_t relative_line = cursor->current_line - lines->offset;
-  if (lines->offset < lines->size && dir > 0 && relative_line >= MAX_LINES-1) {
+  if (lines->offset < lines->size && dir > 0 && relative_line > MAX_LINES-1) {
     lines->offset++;
   }
   if (lines->offset > 0 && dir < 0 && relative_line <= 0) {
@@ -179,13 +179,13 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
   cursor->pos = lines->lines[cursor->current_line].start;
   cursor->line_pos = 0;
 
-  size_t _off = lines->size - MAX_LINES;
+  long _off = (long)lines->size - MAX_LINES - 1;
   if (_off < 0) _off = 0;
-  lines->offset = _off;
+  lines->offset = (size_t)_off;
 
   if (!cursor->is_selecting) __selection_reset(cursor); //TODO could get rid of this if and make __selection_reset return 0 if the selection was reset
   else __selection_move_down(cursor, lines, prev_pos);
 
-  cursor_move_eol(cursor, lines);
+  // cursor_move_eol(cursor, lines);
 }
 
