@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+
 #include "raylib.h"
 #include "ins.h"
 
@@ -32,11 +33,9 @@ void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
   cu->line_pos++;
   lines->lines[cu->current_line].end += 1;
   if (cu->current_line < cu->line_num) {
-    printf("updating lines!\n");
     for (size_t i = cu->current_line+1; i <= cu->line_num; i++) { // move other lines when inserting before last line
       lines->lines[i].start++;
       lines->lines[i].end++;
-      printf("updating line %zu, start: %zu, end: %zu\n", i, lines->lines[i].start, lines->lines[i].end);
     }
   }
 
@@ -59,16 +58,19 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
   //lets go easy way for now 
   size_t repeat = 1;
   size_t selection_range = cur->selection_end - cur->selection_begin;
-  size_t selection_line_range = cur->selection_line_end - cur->selection_line_begin;
   if (selection_range > 0) {
     repeat = selection_range;
+    cur->current_line = cur->selection_line_end;
     cur->pos = cur->selection_end;
     cur->line_pos = cur->selection_end - lines->lines[cur->current_line].start;
   }
 
-  if ((t->capacity <= 0) || (cur->pos <= 0)) return ""; 
-
   char* deleted = (char*)malloc(selection_range+1);
+
+  if ((t->capacity <= 0) || (cur->pos <= 0)) {
+    return deleted;
+  }
+
   deleted[selection_range] = '\0';
   if (selection_range > 0) {
     strncpy(deleted, t->text + cur->selection_begin, selection_range);
@@ -82,9 +84,9 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
       cur->line_pos = lines->lines[cur->current_line].end-lines->lines[cur->current_line].start-1;
       lines->lines[cur->current_line].end = lines->lines[cur->current_line+1].end-1;
       lines->size--;
-      for (size_t i = cur->current_line+1; i < lines->size; i++) {
-        lines->lines[i].start = lines->lines[i+1].start;
-        lines->lines[i].end = lines->lines[i+1].end;
+      for (size_t i = cur->current_line+1; i < lines->size; ++i) {
+        lines->lines[i].start = lines->lines[i+1].start-1;
+        lines->lines[i].end = lines->lines[i+1].end-1;
       }
     } 
     else {
@@ -107,10 +109,8 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
     cur->selection_end = cur->pos;
     cur->selection_line_begin = cur->current_line;
     cur->selection_line_end = cur->current_line;
-    // return deleted;
   }
 
-  // free(deleted);
   return deleted;
 }
 

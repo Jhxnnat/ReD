@@ -1,9 +1,9 @@
 #!/bin/bash
 # gcc -c -I. fs.c
-gcc -c -I. ds.c
-gcc -c -I. nav.c 
-gcc -c -I. ins.c
-gcc -c -I. main.c
+gcc -g -c -I. ds.c
+gcc -g -c -I. nav.c 
+gcc -g -c -I. ins.c
+gcc -g -c -I. main.c
 gcc -g -Wall -o red main.o ins.o nav.o ds.o -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
 rm -f *.o

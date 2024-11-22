@@ -1,5 +1,5 @@
 #include "nav.h"
-
+#include <stdio.h>
 void __selection_reset(Cursor *cursor) {
   cursor->selection_begin = cursor->pos;
   cursor->selection_end = cursor->pos;
@@ -61,6 +61,16 @@ void __selection_move_down(Cursor *cursor, Lines *lines, size_t prev_pos) {
   }
 }
 
+void __update_cam_offset(Cursor *cursor, Lines *lines, int dir) {
+  size_t relative_line = cursor->current_line - lines->offset;
+  if (lines->offset < lines->size && dir > 0 && relative_line >= MAX_LINES-1) {
+    lines->offset++;
+  }
+  if (lines->offset > 0 && dir < 0 && relative_line <= 0) {
+    lines->offset--;
+  }
+}
+
 void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
   if (left) {
     if (cursor->line_pos == 0 && cursor->current_line > 0) {
@@ -72,6 +82,7 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
       cursor->line_pos--;
     }
     
+    __update_cam_offset(cursor, lines, -1);
     __selection_move_left(cursor);
   } 
   else {
@@ -85,6 +96,7 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
       cursor->line_pos++;
     }
 
+    __update_cam_offset(cursor, lines, 1);
     __selection_move_right(cursor);
   }
 
@@ -118,6 +130,9 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
     cursor->pos = lines->lines[current_line].start + cursor->line_pos;
   }
 
+  //cam-mov TODO handle all cam-navigation cases 
+  __update_cam_offset(cursor, lines, dir);
+
   if (!cursor->is_selecting) return;
   if (dir > 0) {
     __selection_move_down(cursor, lines, prev_pos);
@@ -137,12 +152,12 @@ void cursor_move_sol(Cursor *cursor, Lines *lines) {
 void cursor_move_eol(Cursor *cursor, Lines *lines) {
   size_t _len = lines->lines[cursor->current_line].end - lines->lines[cursor->current_line].start;
   if (_len > 0) {
-    int _off = (lines->size < 2 || cursor->current_line == lines->size-1) ? 0 : 1;
+    int _off = 1;
+    if (lines->size <= 1 || cursor->current_line == lines->size-1) {
+      _off = 0;
+    }
     cursor->pos = lines->lines[cursor->current_line].end - _off;
     cursor->line_pos = _len;
-  } else {
-    cursor->pos = lines->lines[cursor->current_line].start;
-    cursor->line_pos = 0;
   }
 
   if (!cursor->is_selecting) __selection_reset(cursor);
@@ -154,6 +169,7 @@ void cursor_move_start(Cursor *cursor, Lines *lines) {
   cursor->line_pos = 0;
   cursor->current_line = 0;
 
+  lines->offset = 0;
   if (!cursor->is_selecting) __selection_reset(cursor);
   else __selection_move_up(cursor, lines, prev_pos); 
 }
@@ -162,6 +178,10 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
   cursor->current_line = lines->size-1;
   cursor->pos = lines->lines[cursor->current_line].start;
   cursor->line_pos = 0;
+
+  size_t _off = lines->size - MAX_LINES;
+  if (_off < 0) _off = 0;
+  lines->offset = _off;
 
   if (!cursor->is_selecting) __selection_reset(cursor); //TODO could get rid of this if and make __selection_reset return 0 if the selection was reset
   else __selection_move_down(cursor, lines, prev_pos);

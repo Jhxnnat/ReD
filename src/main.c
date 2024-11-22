@@ -5,16 +5,6 @@
 #include "raylib.h"
 #include "ins.h"
 
-#define NAME "Retro eDitor - [0.0.1]"
-#define GW 800
-#define GH 600
-#define RTEXT_LEFT 72
-#define RTEXT_TOP 22
-#define RTEXT_LEFT_LINES 18
-#define RFONT_SPACING 2
-#define RFONT_SIZE 24
-#define MAX_LINES 10
-
 Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
   if (range <= 0) {
     Vector2 measurement_ = { 0, 0 };
@@ -27,6 +17,13 @@ Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
   return measurement;
 }
 
+size_t clamp(size_t n, size_t min, size_t max){
+  size_t m = n;
+  if (n > max) m = max;
+  else if (n < min) m = min;
+  return m;
+}
+
 int main(int argc, char **argv) 
 {
   Text text;
@@ -36,6 +33,11 @@ int main(int argc, char **argv)
   add_line(&lines,0, 0, 0);
   Cursor cursor;
   init_cursor(&cursor);
+
+  Camera2D camera = { 0 };
+  camera.target = (Vector2){ 0, 0 };
+  camera.rotation = 0.0f;
+  camera.zoom = 1.0f;
 
   char *FILE_PATH;
   if (argc == 1) {
@@ -48,7 +50,7 @@ int main(int argc, char **argv)
     size_t len = strlen(source);
     for (size_t i = 0; i < len; ++i) {
       if (source[i] == '\n') new_line(&text, &lines, &cursor);
-      else if (source[i] == '\0') continue;
+      else if (source[i] == '\0') break;
       else insert_text(&text, source[i], &cursor, &lines);
     }
     cursor_move_start(&cursor, &lines);
@@ -62,7 +64,7 @@ int main(int argc, char **argv)
 
   InitWindow(GW, GH, NAME);
   
-  Font font = LoadFontEx("./assets/iosevka-font.ttf", RFONT_SIZE, 0, 250);
+  Font font = LoadFontEx("./assets/iosevka-font.ttf", RFONT_SIZE, NULL, 0);
   if (!IsFontValid(font)) {
     font = GetFontDefault();
   }
@@ -79,7 +81,7 @@ int main(int argc, char **argv)
     //writing
     int key = GetCharPressed();
     while (key > 0) {
-      if (key >= 32 && key <= 125) {
+      if (key >= 0 && key <= 255) {
         insert_text(&text, (char)key, &cursor, &lines);
         // cursor.pos++;
         // cursor.line_pos++;
@@ -104,21 +106,25 @@ int main(int argc, char **argv)
       if (IsKeyDown(KEY_UP)) {
         cursor_move_v(&cursor, &lines, -1);
         input_lasttime = current_time;
-        if (lines.offset > 0) lines.offset--;
       }
       if (IsKeyDown(KEY_DOWN)) {
         cursor_move_v(&cursor, &lines, 1);
         input_lasttime = current_time;
-        if (lines.offset < lines.size-1) lines.offset++;
       }
 
       if (IsKeyDown(KEY_ENTER)) {
         new_line(&text, &lines, &cursor);
-
-        for (size_t i = 0; i < lines.size; i++) {
-          printf("Line %zu: start = %zu, end = %zu\n", 
-                 i, lines.lines[i].start, lines.lines[i].end);
+        // for (size_t i = 0; i < lines.size; i++) {
+        //   printf("Line %zu: start = %zu, end = %zu\n", 
+        //          i, lines.lines[i].start, lines.lines[i].end);
+        // }
+        //NOTE for cam nav (vert scroll)
+        size_t relative_line = cursor.current_line - lines.offset;
+        if (relative_line >= MAX_LINES-1) {
+          lines.offset++;
+          printf("\nrelative_line?\n");
         }
+
         input_lasttime = current_time;
       }
 
@@ -180,37 +186,35 @@ int main(int argc, char **argv)
     BeginDrawing();
     ClearBackground(BLACK);
     
+    BeginMode2D(camera);
+    camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
 
     //lines num TODO draw part of lines - relative lines
     size_t text_range = 0;
     int _row = 1;
-    for (size_t i = 1+lines.offset; i < lines.size+1; ++i) {
+    for (size_t i = 1; i < lines.size+1; ++i) {
       int mul = 3;
       if (i > 9) mul = 2;
       if (i > 99) mul = 1;
       if (i > 999) mul = 0;
 
       const char *t = TextFormat("%d", i);
-      Vector2 pos = { RTEXT_LEFT_LINES+(font_measuring.x*mul), RTEXT_TOP+(font_measuring.y*(_row-1))+(RFONT_SPACING*(_row-1)) };
+      Vector2 pos = { RTEXT_LEFT_LINES+(font_measuring.x*mul), RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
       DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
-      
-      text_range += lines.lines[i-1].end - lines.lines[i-1].start;
 
-      _row++;
-      if (_row > MAX_LINES) break;
+      // _row++;
+      // if (_row > MAX_LINES || i >= lines.size) break;
     }
 
     //Drawing part of the text
-    const char *text_part = TextSubtext(text.text, lines.lines[lines.offset].start, text_range);
-    DrawTextEx(font, text_part, (Vector2){ RTEXT_LEFT, RTEXT_TOP }, (float)font.baseSize, RFONT_SPACING, GREEN);
-
-    DrawText(TextFormat(
-      "%d --- col %d, row %d --- [%d, %d] --- select: %d, %d --- %d", 
-      cursor.pos, cursor.line_pos, cursor.current_line,
-      lines.lines[cursor.current_line].start, lines.lines[cursor.current_line].end,
-      cursor.selection_begin, cursor.selection_end,
-      text_range
-    ), 140, GH - 30, 20, ORANGE);
+    // size_t __range = lines.lines[lines.offset + MAX_LINES - 1].end - lines.lines[lines.offset].start;
+    // const char *text_part = TextSubtext(text.text, lines.lines[lines.offset].start, __range);
+    // Vector2 main_text_pos = {
+    //   RTEXT_LEFT,
+    //   RTEXT_TOP+(font_measuring.y*lines.offset)+(RFONT_SPACING*lines.offset)
+    // };
+    DrawTextEx(font, text.text, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING, GRAY);
+    // DrawTextEx(font, text_part, main_text_pos, (float)font.baseSize, RFONT_SPACING, GREEN);
 
     ////Cursor --------------------
     //MeasureText from start of the line to cursor
@@ -218,7 +222,7 @@ int main(int argc, char **argv)
     if (_range <= 0) {
       Vector2 _cursor_pos = { 
         RTEXT_LEFT, 
-        RTEXT_TOP+(font_measuring.y*(cursor.current_line-lines.offset))+(RFONT_SPACING*(cursor.current_line-lines.offset))
+        RTEXT_TOP+(font_measuring.y*(cursor.current_line))+(RFONT_SPACING*(cursor.current_line))
       };
       DrawText("|", _cursor_pos.x, _cursor_pos.y, font.baseSize, RED);
     } else {
@@ -228,7 +232,7 @@ int main(int argc, char **argv)
       Vector2 _text_measure = MeasureTextEx(font, _part, font.baseSize, RFONT_SPACING);
       Vector2 _cursor_pos = { 
         RTEXT_LEFT+_text_measure.x, 
-        RTEXT_TOP+(font_measuring.y*(cursor.current_line-lines.offset))+(RFONT_SPACING*cursor.current_line-lines.offset) 
+        RTEXT_TOP+(font_measuring.y*(cursor.current_line))+(RFONT_SPACING*cursor.current_line) 
       };
       DrawText("|", _cursor_pos.x, _cursor_pos.y, font.baseSize, RED);
     }
@@ -277,6 +281,16 @@ int main(int argc, char **argv)
         }
       }
     }
+
+    EndMode2D();
+
+    DrawText(TextFormat(
+      "%d--col:%d,row:%d--[%d, %d]--select: %d,%d--off:%d", 
+      cursor.pos, cursor.line_pos, cursor.current_line,
+      lines.lines[cursor.current_line].start, lines.lines[cursor.current_line].end,
+      cursor.selection_begin, cursor.selection_end,
+      lines.offset
+    ), 140, GH - 30, 20, ORANGE);
 
     DrawFPS(20, GH-30);
 

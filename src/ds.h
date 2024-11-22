@@ -3,6 +3,16 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#define NAME "Retro eDitor - [0.0.1]"
+#define GW 800
+#define GH 600
+#define RTEXT_LEFT 72
+#define RTEXT_TOP 22
+#define RTEXT_LEFT_LINES 18
+#define RFONT_SPACING 2
+#define RFONT_SIZE 24
+#define MAX_LINES 11
+
 typedef struct {
   size_t capacity;
   size_t size;
@@ -40,3 +50,4 @@ void init_lines(Lines *lines, size_t initial_capacity);
 void free_lines(Lines *lines);
 
 #endif // !DS_H
+
