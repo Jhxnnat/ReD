@@ -1,5 +1,8 @@
-#include "nav.h"
 #include <stdio.h>
+
+#include "nav.h"
+#include "cam.h"
+
 void __selection_reset(Cursor *cursor) {
   cursor->selection_begin = cursor->pos;
   cursor->selection_end = cursor->pos;
@@ -61,15 +64,15 @@ void __selection_move_down(Cursor *cursor, Lines *lines, size_t prev_pos) {
   }
 }
 
-void __update_cam_offset(Cursor *cursor, Lines *lines, int dir) {
-  size_t relative_line = cursor->current_line - lines->offset;
-  if (lines->offset < lines->size && dir > 0 && relative_line > MAX_LINES-1) {
-    lines->offset++;
-  }
-  if (lines->offset > 0 && dir < 0 && relative_line <= 0) {
-    lines->offset--;
-  }
-}
+// void __update_cam_offset(Cursor *cursor, Lines *lines, int dir) { //TODO should this be 2 different funcions??
+//   size_t relative_line = cursor->current_line - lines->offset;
+//   if (lines->offset < lines->size && dir > 0 && relative_line > MAX_LINES-1) {
+//     lines->offset++;
+//   }
+//   if (lines->offset > 0 && dir < 0 && relative_line <= 0) {
+//     lines->offset--;
+//   }
+// }
 
 void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
   if (left) {
@@ -82,7 +85,7 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
       cursor->line_pos--;
     }
     
-    __update_cam_offset(cursor, lines, -1);
+    update_cam_offset_up(cursor, lines);
     __selection_move_left(cursor);
   } 
   else {
@@ -96,7 +99,7 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
       cursor->line_pos++;
     }
 
-    __update_cam_offset(cursor, lines, 1);
+    update_cam_offset_down(cursor, lines);
     __selection_move_right(cursor);
   }
 
@@ -131,7 +134,8 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
   }
 
   //cam-mov TODO handle all cam-navigation cases 
-  __update_cam_offset(cursor, lines, dir);
+  if (dir > 0) update_cam_offset_down(cursor, lines);
+  else update_cam_offset_up(cursor, lines);
 
   if (!cursor->is_selecting) return;
   if (dir > 0) {

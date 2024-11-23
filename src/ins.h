@@ -1,4 +1,5 @@
 #ifndef INS_H
+#define INS_H
 
 #include "nav.h"
 

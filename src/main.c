@@ -4,6 +4,7 @@
 
 #include "raylib.h"
 #include "ins.h"
+#include "cam.h"
 
 Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
   if (range <= 0) {
@@ -35,9 +36,10 @@ int main(int argc, char **argv)
   init_cursor(&cursor);
 
   Camera2D camera = { 0 };
-  camera.target = (Vector2){ 0, 0 };
-  camera.rotation = 0.0f;
-  camera.zoom = 1.0f;
+  init_camera(&camera);
+  // camera.target = (Vector2){ 0, 0 };
+  // camera.rotation = 0.0f;
+  // camera.zoom = 1.0f;
 
   char *FILE_PATH;
   if (argc == 1) {
@@ -134,8 +136,8 @@ int main(int argc, char **argv)
       }
 
       if (IsKeyDown(KEY_TAB)) { //TODO this could be a loop that iterates n (indent config) times!
-        insert_text(&text, '\t', &cursor, &lines);
-        // insert_text(&text, ' ', &cursor, &lines);
+        insert_text(&text, ' ', &cursor, &lines);
+        insert_text(&text, ' ', &cursor, &lines);
         input_lasttime = current_time;
       }
 
@@ -191,7 +193,6 @@ int main(int argc, char **argv)
 
     //lines num TODO draw part of lines - relative lines
     size_t text_range = 0;
-    int _row = 1;
     for (size_t i = 1; i < lines.size+1; ++i) {
       int mul = 3;
       if (i > 9) mul = 2;
@@ -201,20 +202,17 @@ int main(int argc, char **argv)
       const char *t = TextFormat("%d", i);
       Vector2 pos = { RTEXT_LEFT_LINES+(font_measuring.x*mul), RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
       DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
-
-      // _row++;
-      // if (_row > MAX_LINES || i >= lines.size) break;
     }
 
-    //Drawing part of the text
-    size_t __range = lines.lines[lines.offset + MAX_LINES - 1].end - lines.lines[lines.offset].start;
-    const char *text_part = TextSubtext(text.text, lines.lines[lines.offset].start, __range);
-    Vector2 main_text_pos = {
-      RTEXT_LEFT,
-      RTEXT_TOP+(font_measuring.y*lines.offset)+(RFONT_SPACING*lines.offset)
-    };
-    DrawTextEx(font, text.text, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING, GRAY);
-    DrawTextEx(font, text_part, main_text_pos, (float)font.baseSize, RFONT_SPACING, GREEN);
+    //Drawing part of the text //BUG something causes partial text bug when typing after loaded a text file 
+    // size_t __range = lines.lines[lines.offset + MAX_LINES - 1].end - lines.lines[lines.offset].start;
+    // const char *text_part = TextSubtext(text.text, lines.lines[lines.offset].start, __range);
+    // Vector2 main_text_pos = {
+    //   RTEXT_LEFT,
+    //   RTEXT_TOP+(font_measuring.y*lines.offset)+(RFONT_SPACING*lines.offset)
+    // };
+    // DrawTextEx(font, text_part, main_text_pos, (float)font.baseSize, RFONT_SPACING, GREEN);
+    DrawTextEx(font, text.text, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING, WHITE);
 
     ////Cursor --------------------
     //MeasureText from start of the line to cursor

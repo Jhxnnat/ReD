@@ -1,4 +1,5 @@
 #ifndef NAV_H
+#define NAV_H
 
 #include "ds.h"
 

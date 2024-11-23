@@ -24,10 +24,16 @@
 - [ ] vertical scroll
     - [x] base 
     - [ ] cover all navigation cases
+        - [x] ctrl+home/end
+        - [x] arrows 
+        - [ ] backspace
 - [ ] horizontal scroll
+    - [ ] arrows/home/end
+    - [ ] backspace
 - [ ] relative lines
 - [x] draw just a part of the text? 
-- [ ] handle no provided path case 
+- [?] handle no provided path case 
+
 
 - [ ] write and test
 
@@ -35,16 +41,17 @@
 
  - [ ] crt-shader
 
-## posible editor features
+## posible editor features (scripting lua)
 
-- [ ] themes (.lua)
+- [ ] themes
+- [ ] custom-shortcuts
 
 ## fancy features
 
 - [ ] automatic close brackets: [], {}, ()
 - [ ] new line keeps indentation
 
-## hardcore features
+## never todo features
 
 - [ ] LSP - error lens
 - [ ] api 

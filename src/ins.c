@@ -16,7 +16,7 @@ void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
     delete_text(t, cu, lines);
   }
 
-  if (t->capacity >= t->size) {
+  if (t->capacity >= t->size) { //TODO this should be a separate function!
     t->size *= 2;
     char *temp = realloc(t->text, (t->size) * sizeof(char));
     if (temp == NULL) {
@@ -115,6 +115,10 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
 }
 
 void delete_text(Text *t, Cursor *c, Lines *l) {
+  //Move cam up if necessary
+
+  
+
   char *_d = _delete_text(t,c,l);
   free(_d);
 }
