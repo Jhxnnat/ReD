@@ -21,12 +21,12 @@
 - [x] writte the respectives header files
 - [x] selection stuff (home-end, reset)
     - [ ] test more and more
-- [ ] vertical scroll
+- [x] vertical scroll
     - [x] base 
     - [ ] cover all navigation cases
         - [x] ctrl+home/end
         - [x] arrows 
-        - [ ] backspace
+        - [x] backspace
 - [ ] horizontal scroll
     - [ ] arrows/home/end
     - [ ] backspace

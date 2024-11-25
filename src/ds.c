@@ -43,3 +43,14 @@ void free_lines(Lines *lines) {
   lines->lines = NULL;
   lines->capacity = lines->size = 0;
 }
+
+void init_editor(Editor *editor, int window_w, int window_h, int font_height) {
+  if (window_h < 0 || window_w < 0) {
+    printf("window size must be positive\n");
+    exit(44);
+  }
+  editor->max_lines = window_h / font_height;
+  editor->max_lines -= 4;
+
+  editor->hori_offset = 0;
+}

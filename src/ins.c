@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "ins.h"
+// #include "cam.h"
 
 void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
   if (cu->pos < 0) cu->pos = 0;
@@ -111,13 +112,14 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
     cur->selection_line_end = cur->current_line;
   }
 
+  //NOTE I think this isn't necessary
+  // //Move cam up if necessary
+  // update_cam_offset_up(cur, lines);
+
   return deleted;
 }
 
 void delete_text(Text *t, Cursor *c, Lines *l) {
-  //Move cam up if necessary
-
-  
 
   char *_d = _delete_text(t,c,l);
   free(_d);

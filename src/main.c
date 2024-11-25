@@ -37,9 +37,11 @@ int main(int argc, char **argv)
 
   Camera2D camera = { 0 };
   init_camera(&camera);
-  // camera.target = (Vector2){ 0, 0 };
-  // camera.rotation = 0.0f;
-  // camera.zoom = 1.0f;
+  Vector2 cursor_display;
+  cursor_display.x = 0;
+  cursor_display.y = 0;
+
+  Editor editor;
 
   char *FILE_PATH;
   if (argc == 1) {
@@ -51,7 +53,11 @@ int main(int argc, char **argv)
     char *source = LoadFileText(FILE_PATH);
     size_t len = strlen(source);
     for (size_t i = 0; i < len; ++i) {
-      if (source[i] == '\n') new_line(&text, &lines, &cursor);
+      if (source[i] == '\n' || source[i] == '\r') new_line(&text, &lines, &cursor);
+      else if (source[i] == '\t') {
+        insert_text(&text, '-', &cursor, &lines);
+        insert_text(&text, '-', &cursor, &lines);
+      }
       else if (source[i] == '\0') break;
       else insert_text(&text, source[i], &cursor, &lines);
     }
@@ -63,21 +69,34 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-
+  SetConfigFlags(FLAG_WINDOW_UNDECORATED);
   InitWindow(GW, GH, NAME);
   
-  Font font = LoadFontEx("./assets/iosevka-font.ttf", RFONT_SIZE, NULL, 0);
+  Font font = LoadFontEx("./assets/big-blue-term.ttf", RFONT_SIZE, NULL, 0);
   if (!IsFontValid(font)) {
     font = GetFontDefault();
   }
   float input_delay = 0.1f; //when key is constantly pressed
   float input_lasttime = 0.0f;
-  // int font_width = MeasureText("W", font.baseSize);
-  Vector2 font_measuring = MeasureTextEx(font, "W", font.baseSize, RFONT_SPACING);
-  // int key_ = 0;
+  Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
+
+  init_editor(&editor, GW, GH, font_measuring.y);
+
   while (!WindowShouldClose()) {
 
-    //Update
+    //Update cursor position (before cam stuff)
+    size_t _range = cursor.pos - lines.lines[cursor.current_line].start;
+    if (_range <= 0) {
+      cursor_display.x = RTEXT_LEFT;
+      cursor_display.y = RTEXT_TOP+(font_measuring.y*(cursor.current_line))+(RFONT_SPACING*(cursor.current_line));
+    } else {
+      char _part[_range];
+      strncpy(_part, text.text+lines.lines[cursor.current_line].start, _range);
+      _part[_range] = '\0';
+      Vector2 _text_measure = MeasureTextEx(font, _part, font.baseSize, RFONT_SPACING);
+      cursor_display.x = RTEXT_LEFT+_text_measure.x;
+      cursor_display.y = RTEXT_TOP+(font_measuring.y*(cursor.current_line))+(RFONT_SPACING*cursor.current_line);
+    }
     //---------------------------------------------
     //
     //writing
@@ -100,34 +119,42 @@ int main(int argc, char **argv)
       if (IsKeyDown(KEY_RIGHT) && cursor.pos < text.capacity) { 
         cursor_move_h(&cursor, &lines, false);
         input_lasttime = current_time;
+
+        update_cam_offset_down(&cursor, &lines, editor.max_lines);
+        // move_cam_left(&camera, cursor_display.x, font_measuring.y);
+        move_cam_right(&camera, cursor_display.x, font_measuring.y);
       } 
-      if (IsKeyDown(KEY_LEFT) && cursor.pos > 0) {
+      else if (IsKeyDown(KEY_LEFT) && cursor.pos > 0) {
         cursor_move_h(&cursor, &lines, true);
         input_lasttime = current_time;
+
+        update_cam_offset_up(&cursor, &lines);
+        move_cam_left(&camera, cursor_display.x, font_measuring.y);
+        // move_cam_right(&camera, cursor_display.x, font_measuring.y);
       }
-      if (IsKeyDown(KEY_UP)) {
+      else if (IsKeyDown(KEY_UP)) {
+        input_lasttime = current_time;
         cursor_move_v(&cursor, &lines, -1);
-        input_lasttime = current_time;
+
+        update_cam_offset_up(&cursor, &lines);
       }
-      if (IsKeyDown(KEY_DOWN)) {
-        cursor_move_v(&cursor, &lines, 1);
+      else if (IsKeyDown(KEY_DOWN)) {
         input_lasttime = current_time;
+        cursor_move_v(&cursor, &lines, 1); //WARNING make cursor_move_up/down
+
+        update_cam_offset_down(&cursor, &lines, editor.max_lines);
       }
 
       if (IsKeyDown(KEY_ENTER)) {
         new_line(&text, &lines, &cursor);
-        // for (size_t i = 0; i < lines.size; i++) {
-        //   printf("Line %zu: start = %zu, end = %zu\n", 
-        //          i, lines.lines[i].start, lines.lines[i].end);
-        // }
-        //NOTE for cam nav (vert scroll)
-        size_t relative_line = cursor.current_line - lines.offset;
+        input_lasttime = current_time;
+
+        //NOTE make this its own function
+        size_t relative_line = cursor.current_line - lines.offset; 
         if (relative_line >= MAX_LINES-1) {
           lines.offset++;
-          printf("\nrelative_line?\n");
         }
-
-        input_lasttime = current_time;
+        // update_cam_offset_down(&cursor, &lines);
       }
 
       if (IsKeyDown(KEY_BACKSPACE)) {
@@ -169,9 +196,13 @@ int main(int argc, char **argv)
 
         if (IsKeyPressed(KEY_HOME)) {
           cursor_move_start(&cursor, &lines);
+          
+          move_cam_start(&lines);
         }
         if (IsKeyPressed(KEY_END)) {
           cursor_move_end(&cursor, &lines);
+
+          move_cam_end(&lines, editor.max_lines);
         }
       }
 
@@ -194,46 +225,18 @@ int main(int argc, char **argv)
     //lines num TODO draw part of lines - relative lines
     size_t text_range = 0;
     for (size_t i = 1; i < lines.size+1; ++i) {
-      int mul = 3;
-      if (i > 9) mul = 2;
-      if (i > 99) mul = 1;
-      if (i > 999) mul = 0;
-
       const char *t = TextFormat("%d", i);
-      Vector2 pos = { RTEXT_LEFT_LINES+(font_measuring.x*mul), RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
+      Vector2 _meassure_t = MeasureTextEx(font, t, font.baseSize, RFONT_SPACING);
+      Vector2 pos = { RTEXT_LEFT-(_meassure_t.x)-10, RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
       DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
     }
 
-    //Drawing part of the text //BUG something causes partial text bug when typing after loaded a text file 
-    // size_t __range = lines.lines[lines.offset + MAX_LINES - 1].end - lines.lines[lines.offset].start;
-    // const char *text_part = TextSubtext(text.text, lines.lines[lines.offset].start, __range);
-    // Vector2 main_text_pos = {
-    //   RTEXT_LEFT,
-    //   RTEXT_TOP+(font_measuring.y*lines.offset)+(RFONT_SPACING*lines.offset)
-    // };
-    // DrawTextEx(font, text_part, main_text_pos, (float)font.baseSize, RFONT_SPACING, GREEN);
+    ///TODO find a way to render text partially (without bug, please)
+    ////Main Text
     DrawTextEx(font, text.text, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING, WHITE);
 
-    ////Cursor --------------------
-    //MeasureText from start of the line to cursor
-    size_t _range = cursor.pos - lines.lines[cursor.current_line].start;
-    if (_range <= 0) {
-      Vector2 _cursor_pos = { 
-        RTEXT_LEFT, 
-        RTEXT_TOP+(font_measuring.y*(cursor.current_line))+(RFONT_SPACING*(cursor.current_line))
-      };
-      DrawText("|", _cursor_pos.x, _cursor_pos.y, font.baseSize, RED);
-    } else {
-      char _part[_range];
-      strncpy(_part, text.text+lines.lines[cursor.current_line].start, _range);
-      _part[_range] = '\0';
-      Vector2 _text_measure = MeasureTextEx(font, _part, font.baseSize, RFONT_SPACING);
-      Vector2 _cursor_pos = { 
-        RTEXT_LEFT+_text_measure.x, 
-        RTEXT_TOP+(font_measuring.y*(cursor.current_line))+(RFONT_SPACING*cursor.current_line) 
-      };
-      DrawText("|", _cursor_pos.x, _cursor_pos.y, font.baseSize, RED);
-    }
+    ////Cursor
+    DrawText("|", cursor_display.x, cursor_display.y, font.baseSize, RED);
 
     //selection
     size_t select_range = cursor.selection_end - cursor.selection_begin;
