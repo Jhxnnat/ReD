@@ -1,5 +1,6 @@
 # get track of stuff to feel better
 
+## Editor itself
 - [x] start key holding
 - [x] backspace & enter keyhold
 - [x] arrow navigation
@@ -17,9 +18,10 @@
 - [x] copy 
 - [x] paste
 - [x] cut
-    - [ ] test and improve
+    - [ ] test more
 - [x] writte the respectives header files
 - [x] selection stuff (home-end, reset)
+    - [x] writting on a selection
     - [ ] test more and more
 - [x] vertical scroll
     - [x] base 
@@ -27,32 +29,31 @@
         - [x] ctrl+home/end
         - [x] arrows 
         - [x] backspace
-- [ ] horizontal scroll
-    - [ ] arrows/home/end
-    - [ ] backspace
+- [x] horizontal scroll
+    - [x] arrows/home/end
+    - [x] backspace
+    - [ ] test more and more and more
 - [ ] relative lines
 - [x] draw just a part of the text? 
 - [?] handle no provided path case 
 
+- [ ] write and test more and more and more and more? (optional)
 
-- [ ] write and test
+## funny
+- [ ] file navigation?
+- [ ] crt-shader
 
-## funny part 
-
- - [ ] crt-shader
-
-## posible editor features (scripting lua)
-
+## posible but do not want to implement
+- [ ] syntax highlighting
 - [ ] themes
 - [ ] custom-shortcuts
 
 ## fancy features
-
 - [ ] automatic close brackets: [], {}, ()
 - [ ] new line keeps indentation
 
-## never todo features
-
+## this is not gonna happen
 - [ ] LSP - error lens
-- [ ] api 
+- [ ] api (scripting)
 - [ ] code completition
+- [ ] vim motions

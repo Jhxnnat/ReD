@@ -24,9 +24,6 @@ void move_cam_left(Camera2D *camera, int cursor_x, int font_height) { //BUG Unfi
   if (cursor_x < cam_left) {
     camera->target.x -= cam_left - cursor_x;
   }
-  else if (cursor_x > cam_left) {
-    camera->target.x = cursor_x - cam_left;
-  }
 }
 
 void move_cam_right(Camera2D *camera, int cursor_x, int font_height) { //TODO keep working on this 
@@ -34,31 +31,17 @@ void move_cam_right(Camera2D *camera, int cursor_x, int font_height) { //TODO ke
   if (cursor_x > cam_right) {
     camera->target.x += cursor_x - cam_right;
   }
-  else if (cursor_x < cam_right) {
-    camera->target.x = 0;
-  }
 }
 
-void move_cam_start(Lines *lines) {
+void move_cam_start(Camera2D *camera, Lines *lines) {
+  camera->target.x = 0;
   lines->offset = 0;
 }
 
-void move_cam_end(Lines *lines, int max_lines) {
-  long _off = (long)lines->size - max_lines - 1;
+void move_cam_end(Camera2D *camera, Lines *lines, int max_lines) {
+  camera->target.x = 0;
+  int _off = (int)lines->size - max_lines - 1;
   if (_off < 0) _off = 0;
   lines->offset = (size_t)_off;
 }
 
-// bool is_cursor_outbound_top(int cursor_y, int vert_margin) {
-//   if (cursor_y < vert_margin) {
-//     return true;
-//   }
-//   return false;
-// }
-
-// bool is_cursor_outbound_bottom(int cursor_y, int vert_margin) {
-//   if (cursor_y > GH-vert_margin) {
-//     return true;
-//   }
-//   return false;
-// }

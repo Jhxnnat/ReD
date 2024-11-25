@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #define NAME "Retro eDitor - [0.0.1]"
-#define GW 300
+#define GW 600
 #define GH 600
 #define RTEXT_LEFT 72
 #define RTEXT_TOP 22

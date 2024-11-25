@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "nav.h"
 #include "raylib.h"
 #include "ins.h"
 #include "cam.h"
@@ -84,19 +85,7 @@ int main(int argc, char **argv)
 
   while (!WindowShouldClose()) {
 
-    //Update cursor position (before cam stuff)
-    size_t _range = cursor.pos - lines.lines[cursor.current_line].start;
-    if (_range <= 0) {
-      cursor_display.x = RTEXT_LEFT;
-      cursor_display.y = RTEXT_TOP+(font_measuring.y*(cursor.current_line))+(RFONT_SPACING*(cursor.current_line));
-    } else {
-      char _part[_range];
-      strncpy(_part, text.text+lines.lines[cursor.current_line].start, _range);
-      _part[_range] = '\0';
-      Vector2 _text_measure = MeasureTextEx(font, _part, font.baseSize, RFONT_SPACING);
-      cursor_display.x = RTEXT_LEFT+_text_measure.x;
-      cursor_display.y = RTEXT_TOP+(font_measuring.y*(cursor.current_line))+(RFONT_SPACING*cursor.current_line);
-    }
+    
     //---------------------------------------------
     //
     //writing
@@ -121,8 +110,13 @@ int main(int argc, char **argv)
         input_lasttime = current_time;
 
         update_cam_offset_down(&cursor, &lines, editor.max_lines);
-        // move_cam_left(&camera, cursor_display.x, font_measuring.y);
         move_cam_right(&camera, cursor_display.x, font_measuring.y);
+
+
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+        if (cursor.line_pos == 0) {
+          move_cam_left(&camera, cursor_display.x, font_measuring.y);
+        }
       } 
       else if (IsKeyDown(KEY_LEFT) && cursor.pos > 0) {
         cursor_move_h(&cursor, &lines, true);
@@ -130,7 +124,11 @@ int main(int argc, char **argv)
 
         update_cam_offset_up(&cursor, &lines);
         move_cam_left(&camera, cursor_display.x, font_measuring.y);
-        // move_cam_right(&camera, cursor_display.x, font_measuring.y);
+
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+        if (cursor.line_pos >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
+          move_cam_right(&camera, cursor_display.x, font_measuring.y);
+        }
       }
       else if (IsKeyDown(KEY_UP)) {
         input_lasttime = current_time;
@@ -154,12 +152,17 @@ int main(int argc, char **argv)
         if (relative_line >= MAX_LINES-1) {
           lines.offset++;
         }
-        // update_cam_offset_down(&cursor, &lines);
       }
 
       if (IsKeyDown(KEY_BACKSPACE)) {
         delete_text(&text, &cursor, &lines);
         input_lasttime = current_time;
+
+        move_cam_left(&camera, cursor_display.x, font_measuring.y); //------------------------------ WARNING Duplicated Code
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);//----- WARNING Duplicated Code
+        if (cursor.line_pos >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) { //------
+          move_cam_right(&camera, cursor_display.x, font_measuring.y);
+        }
       }
 
       if (IsKeyDown(KEY_TAB)) { //TODO this could be a loop that iterates n (indent config) times!
@@ -197,23 +200,34 @@ int main(int argc, char **argv)
         if (IsKeyPressed(KEY_HOME)) {
           cursor_move_start(&cursor, &lines);
           
-          move_cam_start(&lines);
+          move_cam_start(&camera, &lines);
         }
         if (IsKeyPressed(KEY_END)) {
           cursor_move_end(&cursor, &lines);
 
-          move_cam_end(&lines, editor.max_lines);
+          update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+          move_cam_end(&camera, &lines, editor.max_lines);
+          move_cam_right(&camera, cursor_display.x, font_measuring.y);
         }
       }
 
       if (IsKeyPressed(KEY_HOME)) {
         cursor_move_sol(&cursor, &lines);
+
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+        move_cam_left(&camera, cursor_display.x, font_measuring.y);
       }
       if (IsKeyPressed(KEY_END)) {
         cursor_move_eol(&cursor, &lines);
+
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+        move_cam_right(&camera, cursor_display.x, font_measuring.y);
       }
     }
-    
+
+    //Update cursor position (before cam stuff) //TODO WARNING  is putting this on the rest of keyboards input worth?
+    update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+
     //Drawing
     //---------------------------------------------
     BeginDrawing();

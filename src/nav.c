@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "nav.h"
 
@@ -176,3 +177,17 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
   // cursor_move_eol(cursor, lines);
 }
 
+void update_cursor_display(Vector2 *cursor_display, Text *text, Cursor *cursor, Lines *lines, Font font, Vector2 font_measuring) {
+  size_t _range = cursor->pos - lines->lines[cursor->current_line].start;
+  if (_range <= 0) {
+    cursor_display->x = RTEXT_LEFT;
+    cursor_display->y = RTEXT_TOP+(font_measuring.y*(cursor->current_line))+(RFONT_SPACING*(cursor->current_line));
+  } else {
+    char _part[_range];
+    strncpy(_part, text->text+lines->lines[cursor->current_line].start, _range);
+    _part[_range] = '\0';
+    Vector2 _text_measure = MeasureTextEx(font, _part, font.baseSize, RFONT_SPACING);
+    cursor_display->x = RTEXT_LEFT+_text_measure.x;
+    cursor_display->y = RTEXT_TOP+(font_measuring.y*(cursor->current_line))+(RFONT_SPACING*cursor->current_line);
+  }
+}
