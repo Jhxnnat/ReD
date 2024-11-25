@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "raylib.h"
+// #include "raylib.h"
 #include "ins.h"
 // #include "cam.h"
 

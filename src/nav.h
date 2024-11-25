@@ -1,7 +1,8 @@
 #ifndef NAV_H
 #define NAV_H
 
-#include "raylib.h"
+// #include "raylib.h"
+#include "../raylib/include/raylib.h"
 #include "ds.h"
 
 void cursor_move_h(Cursor *cursor, Lines *lines, bool left);

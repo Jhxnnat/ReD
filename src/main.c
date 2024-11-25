@@ -3,7 +3,8 @@
 #include <string.h>
 
 #include "nav.h"
-#include "raylib.h"
+// #include "raylib.h"
+#include "../raylib/include/raylib.h"
 #include "ins.h"
 #include "cam.h"
 

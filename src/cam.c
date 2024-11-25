@@ -1,4 +1,5 @@
-#include "raylib.h"
+// #include "raylib.h"
+#include "../raylib/include/raylib.h"
 #include "cam.h"
 
 void init_camera(Camera2D *camera) {

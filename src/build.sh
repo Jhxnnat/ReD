@@ -1,13 +1,15 @@
 #!/bin/bash
-# gcc -c -I. fs.c
-gcc -g -c -I. ds.c
-gcc -g -c -I. cam.c
-gcc -g -c -I. nav.c 
-gcc -g -c -I. ins.c
-gcc -g -c -I. main.c
-gcc -g -Wall -o red main.o ins.o nav.o cam.o ds.o -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+
+RAYHEAD=../raylib/include/raylib.h
+RAYLIB=../raylib/lib/libraylib.a
+RAYDIR=../raylib
+
+gcc -c ds.c
+gcc -c cam.c
+gcc -c nav.c 
+gcc -c ins.c
+gcc -c main.c
+
+gcc -o red ds.o cam.o nav.o ins.o main.o -L../raylib/lib/libraylib.a -lraylib -lGL -lm
 
 rm -f *.o
-
-# gcc ./main.c -o ./main -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
-# ./main
