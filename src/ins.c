@@ -6,13 +6,13 @@
 // #include "cam.h"
 
 void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
-  if (cu->pos < 0) cu->pos = 0;
-  if (cu->pos > t->capacity) cu->pos = t->capacity;
+  // if (cu->pos < 0) cu->pos = 0;
+  // if (cu->pos > t->capacity) cu->pos = t->capacity;
 
   // inserting in a selection:
   // - delete selected text 
   // - proceed with the insertion 
-  size_t selection_range = cu->selection_end - cu->selection_begin;
+  const size_t selection_range = cu->selection_end - cu->selection_begin;
   if (selection_range > 0) {
     delete_text(t, cu, lines);
   }
@@ -33,8 +33,8 @@ void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
   cu->pos++;
   cu->line_pos++;
   lines->lines[cu->current_line].end += 1;
-  if (cu->current_line < cu->line_num) {
-    for (size_t i = cu->current_line+1; i <= cu->line_num; i++) { // move other lines when inserting before last line
+  if (cu->current_line < lines->size-1) {
+    for (size_t i = cu->current_line+1; i < lines->size; ++i) { // move other lines when inserting before last line
       lines->lines[i].start++;
       lines->lines[i].end++;
     }
@@ -58,7 +58,7 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
 
   //lets go easy way for now 
   size_t repeat = 1;
-  size_t selection_range = cur->selection_end - cur->selection_begin;
+  const size_t selection_range = cur->selection_end - cur->selection_begin;
   if (selection_range > 0) {
     repeat = selection_range;
     cur->current_line = cur->selection_line_end;
@@ -80,11 +80,14 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
   while (repeat > 0) {
     repeat--;
     if (cur->line_pos == 0) {
-      cur->line_num--;
+      // cur->line_num--;
       cur->current_line--;
-      cur->line_pos = lines->lines[cur->current_line].end-lines->lines[cur->current_line].start-1;
-      lines->lines[cur->current_line].end = lines->lines[cur->current_line+1].end-1;
       lines->size--;
+
+      int diff = lines->lines[cur->current_line].end-lines->lines[cur->current_line].start-1;
+      cur->line_pos = diff;
+
+      lines->lines[cur->current_line].end = lines->lines[cur->current_line+1].end-1;
       for (size_t i = cur->current_line+1; i < lines->size; ++i) {
         lines->lines[i].start = lines->lines[i+1].start-1;
         lines->lines[i].end = lines->lines[i+1].end-1;
@@ -120,7 +123,6 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
 }
 
 void delete_text(Text *t, Cursor *c, Lines *l) {
-
   char *_d = _delete_text(t,c,l);
   free(_d);
 }
@@ -132,11 +134,10 @@ void cut_text(Text *text, Cursor *cursor, Lines *lines) {
     SetClipboardText(_d);
     free(_d);
   }
-  // TODO else cut the entire lide
 }
 
 void resize_lines(Lines *lines) {
-    size_t new_capacity = lines->capacity * 2;
+    const size_t new_capacity = lines->capacity * 2;
     Line *new_lines = realloc(lines->lines, sizeof(Line) * new_capacity);
     if (new_lines == NULL) {
         // Handle realloc failure
@@ -149,46 +150,42 @@ void resize_lines(Lines *lines) {
     lines->capacity = new_capacity;
 }
 
-void add_line(Lines *lines, size_t line_num, size_t start, size_t end) { //line num is where we want to add
-    if (lines->size == lines->capacity) {
-        resize_lines(lines);
-    }
-    
-    //update rest of lines
-    size_t prev_start;
-    size_t prev_end;
-    for (size_t i = line_num; i < lines->size; ++i) { 
-      prev_start = lines->lines[i].start;
-      prev_end = lines->lines[i].end;
-      lines->lines[i+1].start = prev_start;
-      lines->lines[i+1].end = prev_end;
-    }  
+void update_lines(Lines *lines, size_t line_num, size_t start, size_t end) { 
+  //line num is the position of the line we just inserted
+  if (lines->size >= lines->capacity) {
+      resize_lines(lines);
+  }
+  
+  lines->lines[line_num].start = start;
+  lines->lines[line_num].end = end;
 
-    lines->lines[line_num].start = start;
-    lines->lines[line_num].end = end;
-    lines->size++;
+  //update rest of lines
+  const size_t right_amount = end - start + 1;
+  for (size_t i = line_num+1; i < lines->size; ++i) {
+    lines->lines[i].start += right_amount;
+    lines->lines[i].end += right_amount;
+  }
+  lines->size++;
 }
 
 void new_line(Text *text, Lines *lines, Cursor *c) {
   insert_text(text, '\n', c, lines); 
 
-  size_t start = c->pos;
-  size_t end = lines->lines[c->current_line].end;
+  const size_t start = c->pos;
+  const size_t end = lines->lines[c->current_line].end;
 
   lines->lines[c->current_line].end = c->pos;
 
   c->line_pos = 0;
-  c->line_num++;
   c->current_line++;
-  c->selection_line_begin = c->current_line;
-  c->selection_line_end = c->current_line;
-  add_line(lines, c->current_line, start, end);
+  selection_reset(c);
+  update_lines(lines, c->current_line, start, end);
 }
 
 
 void paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for, \t, \r etc to insert them manualy
   const char *source = GetClipboardText();
-  size_t len = strlen(source);
+  const size_t len = strlen(source);
   
   for (size_t i = 0; i < len; ++i) {
     if (source[i] == '\n') new_line(text, lines, cursor);
@@ -197,8 +194,8 @@ void paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for, \t
   }
 }
 
-void copy_text(Text *text, Cursor *cursor, Lines *lines) { //TODO add copy line feature if nothing is selected
-  size_t range = cursor->selection_end - cursor->selection_begin;
+void copy_text(Text *text, Cursor *cursor) { //TODO add copy line feature if nothing is selected
+  const size_t range = cursor->selection_end - cursor->selection_begin;
   if (range <= 0) return;
   char copied_text[range];
   strncpy(copied_text, text->text + cursor->selection_begin, range);

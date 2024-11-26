@@ -27,7 +27,7 @@ void init_cursor(Cursor *c) {
 }
 
 void init_lines(Lines *lines, size_t initial_capacity) {
-  lines->size = 0;
+  lines->size = 1;
   lines->capacity = initial_capacity;
   lines->offset = 0;
   lines->lines = (Line *)malloc(sizeof(Line) * initial_capacity);

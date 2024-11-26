@@ -15,24 +15,26 @@ void update_cam_offset_up(Cursor *cursor, Lines *lines){
 }
 void update_cam_offset_down(Cursor *cursor, Lines *lines, int max_lines){
   size_t relative_line = cursor->current_line - lines->offset;
-  if (lines->offset < lines->size && relative_line > max_lines - 1) {
+  if (lines->offset < lines->size && (int)relative_line > max_lines - 1) {
     lines->offset++;
   }
 }
 
-void move_cam_left(Camera2D *camera, int cursor_x, int font_height) { //BUG Unfinished
+//WARNING, positioning BUG keep working on this------------
+void move_cam_left(Camera2D *camera, int cursor_x, int font_height) {
   int cam_left = camera->target.x + RTEXT_LEFT + font_height;
   if (cursor_x < cam_left) {
     camera->target.x -= cam_left - cursor_x;
+    if (camera->target.x < 0) camera->target.x = 0; //hardcoded?
   }
 }
-
-void move_cam_right(Camera2D *camera, int cursor_x, int font_height) { //TODO keep working on this 
+void move_cam_right(Camera2D *camera, int cursor_x, int font_height) {  
   int cam_right = camera->target.x + GW - font_height;
   if (cursor_x > cam_right) {
     camera->target.x += cursor_x - cam_right;
   }
 }
+//-------------------------------------
 
 void move_cam_start(Camera2D *camera, Lines *lines) {
   camera->target.x = 0;

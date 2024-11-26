@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   init_text(&text, 8); //BUG if text is initialized after loading file some bug causes text to have problems when drawing
   Lines lines;
   init_lines(&lines, 10);
-  add_line(&lines,0, 0, 0);
+  // add_line(&lines,0, 0, 0);
   Cursor cursor;
   init_cursor(&cursor);
 
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
       else if (source[i] == '\0') break;
       else insert_text(&text, source[i], &cursor, &lines);
     }
-    cursor_move_start(&cursor, &lines);
+    cursor_move_start(&cursor);
     UnloadFileText(source);
   }
   else {
@@ -84,6 +84,7 @@ int main(int argc, char **argv)
 
   init_editor(&editor, GW, GH, font_measuring.y);
 
+  update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
   while (!WindowShouldClose()) {
 
     
@@ -94,13 +95,9 @@ int main(int argc, char **argv)
     while (key > 0) {
       if (key >= 0 && key <= 255) {
         insert_text(&text, (char)key, &cursor, &lines);
-        // cursor.pos++;
-        // cursor.line_pos++;
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+        move_cam_right(&camera, cursor_display.x, font_measuring.y);
       }
-      for (size_t i = 0; i < lines.size; i++) {
-        printf("Line %zu: start = %zu, end = %zu\n", i, lines.lines[i].start, lines.lines[i].end);
-      }
-      
       key = GetCharPressed();
     }
 
@@ -112,7 +109,6 @@ int main(int argc, char **argv)
 
         update_cam_offset_down(&cursor, &lines, editor.max_lines);
         move_cam_right(&camera, cursor_display.x, font_measuring.y);
-
 
         update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         if (cursor.line_pos == 0) {
@@ -148,19 +144,18 @@ int main(int argc, char **argv)
         new_line(&text, &lines, &cursor);
         input_lasttime = current_time;
 
-        //NOTE make this its own function
-        size_t relative_line = cursor.current_line - lines.offset; 
-        if (relative_line >= MAX_LINES-1) {
-          lines.offset++;
-        }
+        update_cam_offset_down(&cursor, &lines, editor.max_lines);
+
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+        move_cam_left(&camera, cursor_display.x, font_measuring.y);
       }
 
       if (IsKeyDown(KEY_BACKSPACE)) {
         delete_text(&text, &cursor, &lines);
         input_lasttime = current_time;
 
-        move_cam_left(&camera, cursor_display.x, font_measuring.y); //------------------------------ WARNING Duplicated Code
         update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);//----- WARNING Duplicated Code
+        move_cam_left(&camera, cursor_display.x, font_measuring.y); //------------------------------ WARNING Duplicated Code
         if (cursor.line_pos >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) { //------
           move_cam_right(&camera, cursor_display.x, font_measuring.y);
         }
@@ -192,14 +187,14 @@ int main(int argc, char **argv)
           paste_text(&text, &cursor, &lines);
         }
         if (IsKeyPressed(KEY_C)) {
-          copy_text(&text, &cursor, &lines);
+          copy_text(&text, &cursor);
         }
         if (IsKeyPressed(KEY_X)) {
           cut_text(&text, &cursor, &lines);
         }
 
         if (IsKeyPressed(KEY_HOME)) {
-          cursor_move_start(&cursor, &lines);
+          cursor_move_start(&cursor);
           
           move_cam_start(&camera, &lines);
         }
@@ -226,7 +221,7 @@ int main(int argc, char **argv)
       }
     }
 
-    //Update cursor position (before cam stuff) //TODO WARNING  is putting this on the rest of keyboards input worth?
+    //WARNING put this on input events
     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
 
     //Drawing
@@ -237,18 +232,24 @@ int main(int argc, char **argv)
     BeginMode2D(camera);
     camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
 
-    //lines num TODO draw part of lines - relative lines
-    size_t text_range = 0;
+    ///TODO find a way to render text partially (without BUG, please)
+    ////Main Text
+    DrawTextEx(font, text.text, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING, WHITE);
+
+    ////Lines num-------------------------------NOTE consider draw a part of the lines to optimize 
+    //back
+    DrawRectangle(camera.target.x, camera.target.y, RTEXT_LEFT - 3, GH, BLACK);
+    // lines
+    DrawRectangle(camera.target.x + RTEXT_LEFT-6, camera.target.y, 3, GH, ORANGE);
+    DrawRectangle(camera.target.x - 3, camera.target.y, 3, GH, ORANGE);
+    DrawRectangle(camera.target.x + GW-3, camera.target.y, 3, GH, ORANGE);
+
     for (size_t i = 1; i < lines.size+1; ++i) {
       const char *t = TextFormat("%d", i);
       Vector2 _meassure_t = MeasureTextEx(font, t, font.baseSize, RFONT_SPACING);
-      Vector2 pos = { RTEXT_LEFT-(_meassure_t.x)-10, RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
+      Vector2 pos = { camera.target.x + RTEXT_LEFT-(_meassure_t.x)-10, RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
       DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
     }
-
-    ///TODO find a way to render text partially (without bug, please)
-    ////Main Text
-    DrawTextEx(font, text.text, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING, WHITE);
 
     ////Cursor
     DrawText("|", cursor_display.x, cursor_display.y, font.baseSize, RED);
@@ -300,15 +301,19 @@ int main(int argc, char **argv)
 
     EndMode2D();
 
+    // Status bar 
+    
+    DrawRectangle(0, GH - 40, GW, 40, BLUE);
     DrawText(TextFormat(
       "%d--col:%d,row:%d--[%d, %d]--select: %d,%d--off:%d", 
       cursor.pos, cursor.line_pos, cursor.current_line,
       lines.lines[cursor.current_line].start, lines.lines[cursor.current_line].end,
       cursor.selection_begin, cursor.selection_end,
       lines.offset
-    ), 140, GH - 30, 20, ORANGE);
+    ), 140, GH - 30, 20, BLACK);
 
-    DrawFPS(20, GH-30);
+    DrawText(TextFormat("%d", GetFPS()), 20, GH-30, 20, BLACK);
+    // DrawFPS(20, GH-30);
 
     EndDrawing();
   }

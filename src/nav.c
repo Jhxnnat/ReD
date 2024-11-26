@@ -9,7 +9,7 @@ void swap_values(size_t *x, size_t *y) {
   *y = temp;
 }
 
-void __selection_reset(Cursor *cursor) {
+void selection_reset(Cursor *cursor) {
   cursor->selection_begin = cursor->pos;
   cursor->selection_end = cursor->pos;
   cursor->selection_line_begin = cursor->current_line;
@@ -35,7 +35,7 @@ void __selection_move_right(Cursor *cursor) {
     cursor->selection_line_end = cursor->current_line;
   }
 }
-void __selection_move_up(Cursor *cursor, Lines *lines, size_t prev_pos) {
+void __selection_move_up(Cursor *cursor, size_t prev_pos) {
   if (cursor->selection_end == prev_pos) {
     cursor->selection_end = cursor->pos;
     cursor->selection_line_end = cursor->current_line;
@@ -49,7 +49,7 @@ void __selection_move_up(Cursor *cursor, Lines *lines, size_t prev_pos) {
     cursor->selection_line_begin = cursor->current_line;
   }
 }
-void __selection_move_down(Cursor *cursor, Lines *lines, size_t prev_pos) {
+void __selection_move_down(Cursor *cursor, size_t prev_pos) {
   if (cursor->selection_end == prev_pos) { 
     cursor->selection_end = cursor->pos;
     cursor->selection_line_end = cursor->current_line;
@@ -58,7 +58,6 @@ void __selection_move_down(Cursor *cursor, Lines *lines, size_t prev_pos) {
     cursor->selection_begin = cursor->pos;
     cursor->selection_line_begin = cursor->current_line;
     if (cursor->selection_begin > cursor->selection_end) {
-      size_t t = cursor->selection_end;
       swap_values(&cursor->selection_end, &cursor->selection_begin);
       swap_values(&cursor->selection_line_end, &cursor->selection_line_begin);
     }
@@ -93,7 +92,7 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
   }
 
   if (!cursor->is_selecting) {
-    __selection_reset(cursor);
+    selection_reset(cursor);
   }
 }
 
@@ -103,10 +102,10 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
 
   size_t prev_pos = cursor->pos;
 
-  size_t prev_line = cursor->current_line;
+  // size_t prev_line = cursor->current_line;
   cursor->current_line += dir;
   size_t current_line = cursor->current_line;
-  size_t _prev_len = lines->lines[prev_line].end - lines->lines[prev_line].start;
+  // size_t _prev_len = lines->lines[prev_line].end - lines->lines[prev_line].start;
   size_t _cur_len = lines->lines[current_line].end - lines->lines[current_line].start;
   if (cursor->line_pos > _cur_len) {
     int _off = (_cur_len < 1) ? 0 : 1;
@@ -119,14 +118,14 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
   }
 
   if (!cursor->is_selecting) {
-    __selection_reset(cursor);
+    selection_reset(cursor);
     return;
   }
   if (dir > 0) {
-    __selection_move_down(cursor, lines, prev_pos);
+    __selection_move_down(cursor, prev_pos);
   }
   else {
-    __selection_move_up(cursor, lines, prev_pos);
+    __selection_move_up(cursor, prev_pos);
   }
 }
 
@@ -134,7 +133,7 @@ void cursor_move_sol(Cursor *cursor, Lines *lines) {
   cursor->pos = lines->lines[cursor->current_line].start;
   cursor->line_pos = 0;
 
-  if (!cursor->is_selecting) __selection_reset(cursor);
+  if (!cursor->is_selecting) selection_reset(cursor);
   else __selection_move_left(cursor);
 }
 void cursor_move_eol(Cursor *cursor, Lines *lines) {
@@ -148,18 +147,18 @@ void cursor_move_eol(Cursor *cursor, Lines *lines) {
     cursor->line_pos = _len;
   }
 
-  if (!cursor->is_selecting) __selection_reset(cursor);
+  if (!cursor->is_selecting) selection_reset(cursor);
   else __selection_move_right(cursor);
 }
-void cursor_move_start(Cursor *cursor, Lines *lines) {
+void cursor_move_start(Cursor *cursor) {
   size_t prev_pos = cursor->pos;
   cursor->pos = 0;
   cursor->line_pos = 0;
   cursor->current_line = 0;
 
   // lines->offset = 0;
-  if (!cursor->is_selecting) __selection_reset(cursor);
-  else __selection_move_up(cursor, lines, prev_pos); 
+  if (!cursor->is_selecting) selection_reset(cursor);
+  else __selection_move_up(cursor, prev_pos); 
 }
 void cursor_move_end(Cursor *cursor, Lines *lines) {
   size_t prev_pos = cursor->pos;
@@ -167,14 +166,9 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
   cursor->pos = lines->lines[cursor->current_line].start;
   cursor->line_pos = 0;
 
-  // long _off = (long)lines->size - MAX_LINES - 1;
-  // if (_off < 0) _off = 0;
-  // lines->offset = (size_t)_off;
+  if (!cursor->is_selecting) selection_reset(cursor); //TODO could get rid of this if and make __selection_reset return 0 if the selection was reset
+  else __selection_move_down(cursor, prev_pos);
 
-  if (!cursor->is_selecting) __selection_reset(cursor); //TODO could get rid of this if and make __selection_reset return 0 if the selection was reset
-  else __selection_move_down(cursor, lines, prev_pos);
-
-  // cursor_move_eol(cursor, lines);
 }
 
 void update_cursor_display(Vector2 *cursor_display, Text *text, Cursor *cursor, Lines *lines, Font font, Vector2 font_measuring) {

@@ -40,11 +40,11 @@
 - [ ] write and test more and more and more and more? (optional)
 
 ## funny
+- [ ] simple syntax highlighting
 - [ ] file navigation?
 - [ ] crt-shader
 
 ## posible but do not want to implement
-- [ ] syntax highlighting
 - [ ] themes
 - [ ] custom-shortcuts
 
