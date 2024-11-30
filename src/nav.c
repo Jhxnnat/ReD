@@ -78,8 +78,7 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
     __selection_move_left(cursor);
   } 
   else {
-    if (cursor->pos == lines->lines[cursor->current_line].end-1 
-      && cursor->current_line < cursor->line_num) {
+    if (cursor->pos == lines->lines[cursor->current_line].end-1 && cursor->current_line < lines->size) {
       cursor->current_line++;
       cursor->line_pos = 0;
       cursor->pos++;
@@ -101,19 +100,16 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
   if (dir < 0 && cursor->current_line == 0) return;
 
   size_t prev_pos = cursor->pos;
-
-  // size_t prev_line = cursor->current_line;
   cursor->current_line += dir;
   size_t current_line = cursor->current_line;
-  // size_t _prev_len = lines->lines[prev_line].end - lines->lines[prev_line].start;
-  size_t _cur_len = lines->lines[current_line].end - lines->lines[current_line].start;
-  if (cursor->line_pos > _cur_len) {
-    int _off = (_cur_len < 1) ? 0 : 1;
-    cursor->line_pos = _cur_len - _off;
+  size_t next_line_len = lines->lines[current_line].end - lines->lines[current_line].start;
+
+  if (cursor->line_pos > next_line_len) {
+    int _off = (next_line_len < 1) ? 0 : 1;
+    cursor->line_pos = next_line_len - _off;
     cursor->pos = lines->lines[current_line].end - _off;
   }
   else {
-    //cursor.line_pos remains the same
     cursor->pos = lines->lines[current_line].start + cursor->line_pos;
   }
 

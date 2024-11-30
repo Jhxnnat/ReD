@@ -26,8 +26,8 @@ Color token_color(TokenType kind){
     case TOKEN_KEYWORD: return ORANGE;
     case TOKEN_STRING: return LIME;
     case TOKEN_COMMENT: return GRAY;
-    case TOKEN_OTHER: return WHITE;
-    case TOKEN_IDENTIFIER: return SKYBLUE;
+    case TOKEN_OTHER: return SKYBLUE;
+    case TOKEN_IDENTIFIER: return WHITE;
     case TOKEN_PREPROC: return RED;
     case TOKEN_NUMBER: return PURPLE;
     default: return WHITE;
@@ -109,6 +109,15 @@ Token make_string(Scanner *scanner) {
   return make_token(scanner, TOKEN_STRING);
 }
 
+Token make_comment(Scanner *scanner) {
+  while (peek(scanner) != '\n' && peek_next(scanner) != '\n' && !is_at_end(scanner->current)) {
+    advance(scanner);
+  }
+  if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_COMMENT);
+  advance(scanner);
+  return make_token(scanner, TOKEN_COMMENT);
+}
+
 bool is_digit(char c) {
   return c >= '0' && c <= '9';
 }
@@ -151,13 +160,32 @@ TokenType identifier_type(Scanner *scanner) {
           case 'f': return TOKEN_KEYWORD;
         }
       }
-      return check_keyword(scanner, "if");
-    case 'c': return check_keyword(scanner, "char");
+      break;
+    case 's': 
+      if (scanner->current - scanner->start > 1) {
+        switch(scanner->start[1]) {
+          case 'i': return check_keyword(scanner, "size_t");
+          case 't': return check_keyword(scanner, "struct");
+          case 'w': return check_keyword(scanner, "switch");
+        }
+      }
+      break;
+    case 'c':
+      if (scanner->current - scanner->start > 1) {
+        switch(scanner->start[1]) {
+          case 'h': return check_keyword(scanner, "char");
+          case 'a': return check_keyword(scanner, "case");
+        }
+      }
+      break;
     case 'e': return check_keyword(scanner, "else");
     case 'p': return check_keyword(scanner, "printf");
     case 'r': return check_keyword(scanner, "return");
     case 'w': return check_keyword(scanner, "while");
     case 'v': return check_keyword(scanner, "void");
+    case 't': return check_keyword(scanner, "typedef");
+    case 'f': return check_keyword(scanner, "float");
+    case 'b': return check_keyword(scanner, "bool");
     // case 'm': return check_keyword(scanner, "main");
   }
   
@@ -171,7 +199,7 @@ Token make_identifier(Scanner *scanner) {
 
 Token scan_token(Scanner *scanner) {
   scanner->start = scanner->current;
-  
+
   if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_EOL);
 
   char c = advance(scanner);
@@ -186,20 +214,21 @@ Token scan_token(Scanner *scanner) {
   switch (c) {
     case '#': return make_preproc(scanner);
     case '"': return make_string(scanner);
+    case '/': return make_comment(scanner);
   }
 
   return make_token(scanner, TOKEN_OTHER);
 }
 
 
-void draw_text_highlighted_token(Token token, float *textOffsetX, Font font, Vector2 position, float fontSize, float spacing) {
+void draw_text_line_token(Token token, float *textOffsetX, Font font, Vector2 position, float fontSize, float spacing) {
   Color tint = token_color(token.type);
   const int textLineSpacing = 2;
   if (font.texture.id == 0) font = GetFontDefault();
   float textOffsetY = (fontSize + textLineSpacing) * (token.line - 1);
   float scaleFactor = fontSize / font.baseSize;
 
-  for (int i = 0; i < token.len;) {
+  for (size_t i = 0; i < token.len;) {
     int codepointByteCount = 0;
     int codepoint = GetCodepointNext(&token.start[i], &codepointByteCount);
     int index = GetGlyphIndex(font, codepoint);
@@ -219,7 +248,8 @@ void draw_text_highlighted_token(Token token, float *textOffsetX, Font font, Vec
   }
 }
 
-void scanner(const char *text, Font font, Vector2 position, float fontSize, float spacing){
+// void scanner(const char *text, Font font, Vector2 position, float fontSize, float spacing){
+void draw_text_tokenized(const char *text, Font font, Vector2 position, float fontSize, float spacing){
   Scanner scanner;
   scanner.start = text;
   scanner.current = text;
@@ -230,20 +260,11 @@ void scanner(const char *text, Font font, Vector2 position, float fontSize, floa
   float textOffsetX = 0.0f;
   for (;;) {
     Token token = scan_token(&scanner);
-    if (token.line != line) {
-      // printf("%zu ", token.line);
+    if ((int)token.line != line) {
       line = token.line;
       textOffsetX = 0.0f;
-    } else {
-      // printf("   | ");
     }
-    // printf("%s, cursor: %zu - '%.*s'\n", token_name(token.type), scanner.cursor, (int) token.len, token.start);
-
-    // if (token.type == TOKEN_BREAKLINE) textOffsetX = 0.0f;
-    
-    // printf("token line: %zu\n", token.line);
-    draw_text_highlighted_token(token, &textOffsetX, font, position, fontSize, spacing);
-
+    draw_text_line_token(token, &textOffsetX, font, position, fontSize, spacing);
     if (token.type == TOKEN_EOL) break;
   }
 }

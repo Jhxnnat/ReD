@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "nav.h"
-// #include "raylib.h"
 #include "../raylib/include/raylib.h"
 #include "ins.h"
 #include "cam.h"
@@ -86,15 +85,6 @@ int main(int argc, char **argv)
   init_editor(&editor, GW, GH, font_measuring.y);
 
   update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
-
-  // scanner(
-  //   "#include <stdio.h>\n"
-  //   "\n"
-  //   "int main (void) {\n"
-  //   "   printf(\"holaaa\")\n"
-  //   "   return 0;\n"
-  //   "}\n"
-  // );
 
   while (!WindowShouldClose()) {
     //writing
@@ -239,9 +229,8 @@ int main(int argc, char **argv)
     BeginMode2D(camera);
     camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
 
-    ////Main Text
-    /// 
-    scanner(text.text, font, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING );
+    ////Main Text NOTE WARNING TODO BUG ERROR = how to name this?
+    draw_text_tokenized(text.text, font, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING );
 
     ////Lines num-------------------------------NOTE consider draw a part of the lines to optimize 
     //back

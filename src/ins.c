@@ -6,12 +6,8 @@
 // #include "cam.h"
 
 void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
-  // if (cu->pos < 0) cu->pos = 0;
-  // if (cu->pos > t->capacity) cu->pos = t->capacity;
+  if (cu->pos > t->capacity) cu->pos = t->capacity;
 
-  // inserting in a selection:
-  // - delete selected text 
-  // - proceed with the insertion 
   const size_t selection_range = cu->selection_end - cu->selection_begin;
   if (selection_range > 0) {
     delete_text(t, cu, lines);
@@ -80,7 +76,6 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
   while (repeat > 0) {
     repeat--;
     if (cur->line_pos == 0) {
-      // cur->line_num--;
       cur->current_line--;
       lines->size--;
 

@@ -16,7 +16,6 @@ void free_text(Text *t) {
 
 void init_cursor(Cursor *c) {
   c->pos = 0;
-  c->line_num = 0;
   c->line_pos = 0;
   c->current_line = 0;
   c->is_selecting = false;

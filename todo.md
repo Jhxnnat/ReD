@@ -25,7 +25,7 @@
     - [ ] test more and more
 - [x] vertical scroll
     - [x] base 
-    - [ ] cover all navigation cases
+    - [?] cover all navigation cases
         - [x] ctrl+home/end
         - [x] arrows 
         - [x] backspace
@@ -33,26 +33,28 @@
     - [x] arrows/home/end
     - [x] backspace
     - [ ] test more and more and more
-- [ ] relative lines
 - [x] draw just a part of the text? 
 - [?] handle no provided path case 
 
 - [ ] write and test more and more and more and more? (optional)
 
+- [ ] resizable window
+
 ## funny
-- [ ] simple syntax highlighting
+- [x] simple syntax highlighting (C)
+    - [ ] highlighting single quotes strings
 - [ ] file navigation?
 - [ ] crt-shader
 
-## posible but do not want to implement
+## do not want to implement
 - [ ] themes
-- [ ] custom-shortcuts
+- [ ] custom-shortcuts (cutomization in general)
 
 ## fancy features
 - [ ] automatic close brackets: [], {}, ()
 - [ ] new line keeps indentation
 
-## this is not gonna happen
+## this is not going happen
 - [ ] LSP - error lens
 - [ ] api (scripting)
 - [ ] code completition

@@ -34,8 +34,7 @@ typedef struct {
 
 typedef struct {
   size_t pos; 
-  size_t line_num; //TODO change this to: row or line_amount
-  size_t line_pos; //TODO change this to: col (column)
+  size_t line_pos; //TODO change this to: column
   size_t current_line;
   bool   is_selecting;
   size_t selection_begin; 

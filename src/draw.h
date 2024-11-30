@@ -39,6 +39,6 @@ typedef struct {
 //   size_t capacity;
 // } TokenList;
 
-void scanner(const char *text, Font font, Vector2 position, float fontSize, float spacing);
+void draw_text_tokenized(const char *text, Font font, Vector2 position, float fontSize, float spacing);
 
 #endif // !DRAW_H
