@@ -7,6 +7,7 @@
 #include "../raylib/include/raylib.h"
 #include "ins.h"
 #include "cam.h"
+#include "draw.h"
 
 Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
   if (range <= 0) {
@@ -85,11 +86,17 @@ int main(int argc, char **argv)
   init_editor(&editor, GW, GH, font_measuring.y);
 
   update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
-  while (!WindowShouldClose()) {
 
-    
-    //---------------------------------------------
-    //
+  // scanner(
+  //   "#include <stdio.h>\n"
+  //   "\n"
+  //   "int main (void) {\n"
+  //   "   printf(\"holaaa\")\n"
+  //   "   return 0;\n"
+  //   "}\n"
+  // );
+
+  while (!WindowShouldClose()) {
     //writing
     int key = GetCharPressed();
     while (key > 0) {
@@ -232,9 +239,9 @@ int main(int argc, char **argv)
     BeginMode2D(camera);
     camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
 
-    ///TODO find a way to render text partially (without BUG, please)
     ////Main Text
-    DrawTextEx(font, text.text, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING, WHITE);
+    /// 
+    scanner(text.text, font, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING );
 
     ////Lines num-------------------------------NOTE consider draw a part of the lines to optimize 
     //back
@@ -258,9 +265,7 @@ int main(int argc, char **argv)
     size_t select_range = cursor.selection_end - cursor.selection_begin;
     size_t select_line_range = cursor.selection_line_end - cursor.selection_line_begin;
     Color select_color = { 255, 255, 255, 80 };
-
     int _x, _w, _y, _h = font_measuring.y;
-
     //one line selected
     if (select_line_range == 0 && select_range > 0) {
       size_t _plsize = cursor.selection_begin-lines.lines[cursor.current_line].start;
