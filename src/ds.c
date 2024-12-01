@@ -1,4 +1,5 @@
 #include <stdio.h>
+
 #include "ds.h"
 
 void init_text(Text *t, size_t size) {
@@ -43,13 +44,23 @@ void free_lines(Lines *lines) {
   lines->capacity = lines->size = 0;
 }
 
-void init_editor(Editor *editor, int window_w, int window_h, int font_height) {
-  if (window_h < 0 || window_w < 0) {
-    printf("window size must be positive\n");
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h) {
+  if (window_h <= 0 || window_w <= 0) {
+    printf("negative windows haven't been invented yet\n");
     exit(44);
   }
+  
+  Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
+  editor->font_measuring = font_measuring;
+
+  float font_height = font_measuring.y;
   editor->max_lines = window_h / font_height;
   editor->max_lines -= 4;
 
   editor->hori_offset = 0;
+  editor->write_mode = true;
+
+  editor->lines = lines;
+  editor->text = text;
+  editor->cursor = cursor;
 }

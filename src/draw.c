@@ -5,221 +5,7 @@
 
 // #include "ds.h"
 #include "draw.h"
-
-const char *token_name(TokenType kind){
-  switch (kind) {
-    case TOKEN_KEYWORD: return "token keyword";
-    case TOKEN_STRING: return "a string";
-    case TOKEN_COMMENT: return "a commet";
-    case TOKEN_OTHER: return "token other";
-    case TOKEN_BREAKLINE: return "a breakline";
-    case TOKEN_EOL: return "EOF";
-    case TOKEN_IDENTIFIER: return "token identifier";
-    case TOKEN_PREPROC: return "token preproc";
-    case TOKEN_NUMBER: return "token num";
-    default: return "unknown token";
-  }
-}
-
-Color token_color(TokenType kind){
-  switch (kind) {
-    case TOKEN_KEYWORD: return ORANGE;
-    case TOKEN_STRING: return LIME;
-    case TOKEN_COMMENT: return GRAY;
-    case TOKEN_OTHER: return SKYBLUE;
-    case TOKEN_IDENTIFIER: return WHITE;
-    case TOKEN_PREPROC: return RED;
-    case TOKEN_NUMBER: return PURPLE;
-    default: return WHITE;
-  }
-}
-
-bool is_at_end(const char *c) {
-  return *c == '\0';
-}
-
-Token make_token(Scanner *scanner, TokenType type) {
-  Token token;
-  token.type = type;
-  token.start = scanner->start;
-  token.len = (size_t)(scanner->current - scanner->start);
-  token.line = scanner->line;
-  return token;
-}
-
-char advance(Scanner *scanner) {
-  scanner->current++;
-  scanner->cursor++;
-  return scanner->current[-1];
-}
-
-char peek(Scanner *scanner) {
-  return *scanner->current;
-}
-
-char peek_next(Scanner *scanner) {
-  if (is_at_end(scanner->current)) return '\0';
-  return scanner->current[1];
-}
-
-bool skip_whitespace(Scanner *scanner) {
-  for (;;) {
-    char c = peek(scanner);
-    switch(c) {
-      // case ' ':
-      // case '\r':
-      // case '\t':
-      //   advance(scanner);
-      //   break;
-      case '\n':
-        scanner->line++;
-        advance(scanner);
-        return true;
-        break;
-      default:
-        return false;
-    }
-  }
-}
-
-Token make_preproc(Scanner *scanner) {
-  while (peek(scanner) != '\n' && peek_next(scanner) != '\n' && !is_at_end(scanner->current)) {
-    // if (peek(scanner) == '\\') scanner->line++;
-    advance(scanner);
-  }
-
-  if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_PREPROC);
-
-  advance(scanner);
-  return make_token(scanner, TOKEN_PREPROC);
-}
-
-Token make_string(Scanner *scanner) { 
-  while (peek(scanner) != '"' && !is_at_end(scanner->current)) {
-    // if (peek(scanner) == '\n') scanner->line++; //TODO this is causing bugs with breakline token
-    if (peek(scanner) == '\n') {
-      return make_token(scanner, TOKEN_STRING);
-    }
-    advance(scanner);
-  }
-
-  if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_OTHER);
-
-  advance(scanner);
-  return make_token(scanner, TOKEN_STRING);
-}
-
-Token make_comment(Scanner *scanner) {
-  while (peek(scanner) != '\n' && peek_next(scanner) != '\n' && !is_at_end(scanner->current)) {
-    advance(scanner);
-  }
-  if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_COMMENT);
-  advance(scanner);
-  return make_token(scanner, TOKEN_COMMENT);
-}
-
-bool is_digit(char c) {
-  return c >= '0' && c <= '9';
-}
-
-Token make_number(Scanner *scanner) {
-  while (is_digit(peek(scanner))) advance(scanner);
-
-  if (peek(scanner) == '.' && is_digit(peek_next(scanner))) {
-    advance(scanner);
-
-    while (is_digit(peek(scanner))) advance(scanner);
-  }
-
-  return make_token(scanner, TOKEN_NUMBER);
-}
-
-bool is_alpha(char c) {
-  return (c >= 'a' && c <= 'z') ||
-    (c >= 'A' && c <= 'Z') ||
-    c == '_';
-}
-
-TokenType check_keyword(Scanner *scanner, const char *rest) {
-  //TODO make a definition for char len
-  const size_t len = strlen(rest);
-  const size_t len2 = scanner->current - scanner->start;
-  if (len2 == len && memcmp(scanner->start, rest, len) == 0) {
-    return TOKEN_KEYWORD;
-  }
-
-  return TOKEN_IDENTIFIER;
-}
-
-TokenType identifier_type(Scanner *scanner) {
-  switch (scanner->start[0]) {
-    case 'i':
-      if (scanner->current - scanner->start > 1) {
-        switch(scanner->start[1]) {
-          case 'n': return check_keyword(scanner, "int");
-          case 'f': return TOKEN_KEYWORD;
-        }
-      }
-      break;
-    case 's': 
-      if (scanner->current - scanner->start > 1) {
-        switch(scanner->start[1]) {
-          case 'i': return check_keyword(scanner, "size_t");
-          case 't': return check_keyword(scanner, "struct");
-          case 'w': return check_keyword(scanner, "switch");
-        }
-      }
-      break;
-    case 'c':
-      if (scanner->current - scanner->start > 1) {
-        switch(scanner->start[1]) {
-          case 'h': return check_keyword(scanner, "char");
-          case 'a': return check_keyword(scanner, "case");
-        }
-      }
-      break;
-    case 'e': return check_keyword(scanner, "else");
-    case 'p': return check_keyword(scanner, "printf");
-    case 'r': return check_keyword(scanner, "return");
-    case 'w': return check_keyword(scanner, "while");
-    case 'v': return check_keyword(scanner, "void");
-    case 't': return check_keyword(scanner, "typedef");
-    case 'f': return check_keyword(scanner, "float");
-    case 'b': return check_keyword(scanner, "bool");
-    // case 'm': return check_keyword(scanner, "main");
-  }
-  
-  return TOKEN_IDENTIFIER;
-}
-
-Token make_identifier(Scanner *scanner) {
-  while (is_alpha(peek(scanner)) || is_digit(peek(scanner))) advance(scanner);
-  return make_token(scanner, identifier_type(scanner));
-}
-
-Token scan_token(Scanner *scanner) {
-  scanner->start = scanner->current;
-
-  if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_EOL);
-
-  char c = advance(scanner);
-  if (is_alpha(c)) return make_identifier(scanner);
-  if (is_digit(c)) return make_number(scanner);
-
-  if (c == '\n') {
-    scanner->line++;
-    return make_token(scanner, TOKEN_BREAKLINE);
-  }
-
-  switch (c) {
-    case '#': return make_preproc(scanner);
-    case '"': return make_string(scanner);
-    case '/': return make_comment(scanner);
-  }
-
-  return make_token(scanner, TOKEN_OTHER);
-}
-
+#include "lexer.h"
 
 void draw_text_line_token(Token token, float *textOffsetX, Font font, Vector2 position, float fontSize, float spacing) {
   Color tint = token_color(token.type);
@@ -248,7 +34,6 @@ void draw_text_line_token(Token token, float *textOffsetX, Font font, Vector2 po
   }
 }
 
-// void scanner(const char *text, Font font, Vector2 position, float fontSize, float spacing){
 void draw_text_tokenized(const char *text, Font font, Vector2 position, float fontSize, float spacing){
   Scanner scanner;
   scanner.start = text;
@@ -269,3 +54,76 @@ void draw_text_tokenized(const char *text, Font font, Vector2 position, float fo
   }
 }
 
+void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines lines){
+  ////Lines num NOTE consider draw a part of the lines to optimize 
+  //back
+  DrawRectangle(camera.target.x, camera.target.y, RTEXT_LEFT - 3, GH, BLACK);
+  // lines
+  DrawRectangle(camera.target.x + RTEXT_LEFT-6, camera.target.y, 3, GH, ORANGE);
+  DrawRectangle(camera.target.x - 3, camera.target.y, 3, GH, ORANGE);
+  DrawRectangle(camera.target.x + GW-3, camera.target.y, 3, GH, ORANGE);
+
+  for (size_t i = 1; i < lines.size+1; ++i) {
+    const char *t = TextFormat("%d", i);
+    Vector2 _meassure_t = MeasureTextEx(font, t, font.baseSize, RFONT_SPACING);
+    Vector2 pos = { camera.target.x + RTEXT_LEFT-(_meassure_t.x)-10, RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
+    DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
+  }
+}
+
+Vector2 _measure_text_part(Text *text, Font font, size_t start, size_t range) {
+  if (range <= 0) {
+    Vector2 measurement_ = { 0, 0 };
+    return measurement_;
+  }
+  char part[range];
+  strncpy(part, text->text+start, range);
+  part[range] = '\0';
+  Vector2 measurement = MeasureTextEx(font, part, font.baseSize, RFONT_SPACING);
+  return measurement;
+}
+
+void draw_selection(Cursor cursor, Lines lines, Text text, Font font, Vector2 font_measuring){
+  //selection
+  size_t select_range = cursor.selection_end - cursor.selection_begin;
+  size_t select_line_range = cursor.selection_line_end - cursor.selection_line_begin;
+  Color select_color = { 255, 255, 255, 80 };
+  int _x, _w, _y, _h = font_measuring.y;
+  //one line selected
+  if (select_line_range == 0 && select_range > 0) {
+    size_t _plsize = cursor.selection_begin-lines.lines[cursor.current_line].start;
+    Vector2 _selection_l_measure = _measure_text_part(&text, font, lines.lines[cursor.current_line].start, _plsize);
+    Vector2 _selection_measure = _measure_text_part(&text, font, cursor.selection_begin, select_range);
+    _x = RTEXT_LEFT+(_selection_l_measure.x);
+    _w = _selection_measure.x;
+    _y = RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line);
+    DrawRectangle(_x, _y, _w, _h, select_color);
+  }
+  else if (select_line_range > 0 && select_range > 0) {
+    for (size_t i = cursor.selection_line_begin; i <= cursor.selection_line_end; ++i) {
+      _y = RTEXT_TOP+(font_measuring.y * i) + (RFONT_SPACING * i);
+
+      if (i == cursor.selection_line_begin) { //first line
+        size_t _plsize = cursor.selection_begin-lines.lines[i].start;
+        Vector2 _selection_l_measure = _measure_text_part(&text, font, lines.lines[i].start, _plsize);
+        Vector2 _selection_measure = _measure_text_part(&text, font, cursor.selection_begin, lines.lines[i].end - cursor.selection_begin);
+        _x = RTEXT_LEFT+_selection_l_measure.x;
+        _w = _selection_measure.x;
+        DrawRectangle(_x, _y, _w, _h, select_color);
+      }
+      else if (i == cursor.selection_line_end) { //last line
+        Vector2 _selection_measure = _measure_text_part(&text, font, lines.lines[i].start, cursor.selection_end-lines.lines[i].start);
+        _x = RTEXT_LEFT;
+        _w = _selection_measure.x;
+        DrawRectangle(_x, _y, _w, _h, select_color);
+      }
+      else { //between lines
+        _x = RTEXT_LEFT;
+        size_t _range = lines.lines[i].end - lines.lines[i].start;
+        Vector2 _line_measure = _measure_text_part(&text, font, lines.lines[i].start, _range);
+        _w = _line_measure.x;
+        DrawRectangle(_x, _y, _w, _h, select_color);
+      }
+    }
+  }
+}

@@ -8,17 +8,17 @@
 #include "cam.h"
 #include "draw.h"
 
-Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
-  if (range <= 0) {
-    Vector2 measurement_ = { 0, 0 };
-    return measurement_;
-  }
-  char part[range];
-  strncpy(part, text->text+start, range);
-  part[range] = '\0';
-  Vector2 measurement = MeasureTextEx(font, part, font.baseSize, RFONT_SPACING);
-  return measurement;
-}
+// Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
+//   if (range <= 0) {
+//     Vector2 measurement_ = { 0, 0 };
+//     return measurement_;
+//   }
+//   char part[range];
+//   strncpy(part, text->text+start, range);
+//   part[range] = '\0';
+//   Vector2 measurement = MeasureTextEx(font, part, font.baseSize, RFONT_SPACING);
+//   return measurement;
+// }
 
 size_t clamp(size_t n, size_t min, size_t max){
   size_t m = n;
@@ -33,7 +33,6 @@ int main(int argc, char **argv)
   init_text(&text, 8); //BUG if text is initialized after loading file some bug causes text to have problems when drawing
   Lines lines;
   init_lines(&lines, 10);
-  // add_line(&lines,0, 0, 0);
   Cursor cursor;
   init_cursor(&cursor);
 
@@ -73,6 +72,7 @@ int main(int argc, char **argv)
 
   SetConfigFlags(FLAG_WINDOW_UNDECORATED);
   InitWindow(GW, GH, NAME);
+  SetExitKey(0);
   
   Font font = LoadFontEx("./assets/big-blue-term.ttf", RFONT_SIZE, NULL, 0);
   if (!IsFontValid(font)) {
@@ -82,12 +82,17 @@ int main(int argc, char **argv)
   float input_lasttime = 0.0f;
   Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
 
-  init_editor(&editor, GW, GH, font_measuring.y);
+  // init_editor(&editor, GW, GH, font_measuring.y);
+  init_editor(&editor, &cursor, &lines, &text, font, GW, GH);
 
   update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
 
   while (!WindowShouldClose()) {
-    //writing
+    
+    if (IsKeyPressed(KEY_ESCAPE)) {
+      editor.write_mode = !editor.write_mode;
+    }
+
     int key = GetCharPressed();
     while (key > 0) {
       if (key >= 0 && key <= 255) {
@@ -225,75 +230,23 @@ int main(int argc, char **argv)
     //---------------------------------------------
     BeginDrawing();
     ClearBackground(BLACK);
+
+    if (editor.write_mode == true) {
+      BeginMode2D(camera);
+
+      camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
+
+      draw_text_tokenized(text.text, font, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING );
+      draw_line_numbers(camera, font, font_measuring, lines);
+      DrawTextEx(font, "|", cursor_display, font.baseSize, 0, RED);
+      draw_selection(cursor, lines, text, font, font_measuring);
+
+      EndMode2D();
+    } 
+    else {
+      DrawTextEx(font, "navigation", (Vector2){20, 20}, font.baseSize, RFONT_SPACING, WHITE);
+    }
     
-    BeginMode2D(camera);
-    camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
-
-    ////Main Text NOTE WARNING TODO BUG ERROR = how to name this?
-    draw_text_tokenized(text.text, font, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING );
-
-    ////Lines num-------------------------------NOTE consider draw a part of the lines to optimize 
-    //back
-    DrawRectangle(camera.target.x, camera.target.y, RTEXT_LEFT - 3, GH, BLACK);
-    // lines
-    DrawRectangle(camera.target.x + RTEXT_LEFT-6, camera.target.y, 3, GH, ORANGE);
-    DrawRectangle(camera.target.x - 3, camera.target.y, 3, GH, ORANGE);
-    DrawRectangle(camera.target.x + GW-3, camera.target.y, 3, GH, ORANGE);
-
-    for (size_t i = 1; i < lines.size+1; ++i) {
-      const char *t = TextFormat("%d", i);
-      Vector2 _meassure_t = MeasureTextEx(font, t, font.baseSize, RFONT_SPACING);
-      Vector2 pos = { camera.target.x + RTEXT_LEFT-(_meassure_t.x)-10, RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
-      DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
-    }
-
-    ////Cursor
-    DrawText("|", cursor_display.x, cursor_display.y, font.baseSize, RED);
-
-    //selection
-    size_t select_range = cursor.selection_end - cursor.selection_begin;
-    size_t select_line_range = cursor.selection_line_end - cursor.selection_line_begin;
-    Color select_color = { 255, 255, 255, 80 };
-    int _x, _w, _y, _h = font_measuring.y;
-    //one line selected
-    if (select_line_range == 0 && select_range > 0) {
-      size_t _plsize = cursor.selection_begin-lines.lines[cursor.current_line].start;
-      Vector2 _selection_l_measure = measure_text_part(&text, font, lines.lines[cursor.current_line].start, _plsize);
-      Vector2 _selection_measure = measure_text_part(&text, font, cursor.selection_begin, select_range);
-      _x = RTEXT_LEFT+(_selection_l_measure.x);
-      _w = _selection_measure.x;
-      _y = RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line);
-      DrawRectangle(_x, _y, _w, _h, select_color);
-    }
-    else if (select_line_range > 0 && select_range > 0) {
-      for (size_t i = cursor.selection_line_begin; i <= cursor.selection_line_end; ++i) {
-        _y = RTEXT_TOP+(font_measuring.y * i) + (RFONT_SPACING * i);
-
-        if (i == cursor.selection_line_begin) { //first line
-          size_t _plsize = cursor.selection_begin-lines.lines[i].start;
-          Vector2 _selection_l_measure = measure_text_part(&text, font, lines.lines[i].start, _plsize);
-          Vector2 _selection_measure = measure_text_part(&text, font, cursor.selection_begin, lines.lines[i].end - cursor.selection_begin);
-          _x = RTEXT_LEFT+_selection_l_measure.x;
-          _w = _selection_measure.x;
-          DrawRectangle(_x, _y, _w, _h, select_color);
-        }
-        else if (i == cursor.selection_line_end) { //last line
-          Vector2 _selection_measure = measure_text_part(&text, font, lines.lines[i].start, cursor.selection_end-lines.lines[i].start);
-          _x = RTEXT_LEFT;
-          _w = _selection_measure.x;
-          DrawRectangle(_x, _y, _w, _h, select_color);
-        }
-        else { //between lines
-          _x = RTEXT_LEFT;
-          size_t _range = lines.lines[i].end - lines.lines[i].start;
-          Vector2 _line_measure = measure_text_part(&text, font, lines.lines[i].start, _range);
-          _w = _line_measure.x;
-          DrawRectangle(_x, _y, _w, _h, select_color);
-        }
-      }
-    }
-
-    EndMode2D();
 
     // Status bar 
     

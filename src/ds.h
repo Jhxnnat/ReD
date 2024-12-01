@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include "../raylib/include/raylib.h"
 
 #define NAME "Retro eDitor - [0.0.1]"
 #define GW 800
@@ -36,7 +37,7 @@ typedef struct {
   size_t pos; 
   size_t line_pos; //TODO change this to: column
   size_t current_line;
-  bool   is_selecting;
+  bool is_selecting;
   size_t selection_begin; 
   size_t selection_end;
   size_t selection_line_begin;
@@ -44,9 +45,16 @@ typedef struct {
 } Cursor;
 
 typedef struct {
-  // int margin_top;
+  Cursor *cursor;
+  Lines *lines;
+  Text *text;
+  
+  Font font;
+  Vector2 font_measuring;
+
   int max_lines;
   int hori_offset;
+  bool write_mode;
 } Editor;
 
 void init_text(Text *t, size_t size);
@@ -55,7 +63,7 @@ void init_cursor(Cursor *c);
 void init_lines(Lines *lines, size_t initial_capacity);
 void free_lines(Lines *lines);
 
-void init_editor(Editor *editor, int window_w, int window_h, int font_height);
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h);
 
 #endif // !DS_H
 

@@ -2,43 +2,12 @@
 #define DRAW_H
 
 #include <stdlib.h>
+
 #include "../raylib//include/raylib.h"
-
-typedef enum {
-  TOKEN_KEYWORD = 0,
-  TOKEN_IDENTIFIER,
-  TOKEN_PREPROC,
-  TOKEN_STRING,
-  TOKEN_COMMENT,
-  TOKEN_NUMBER,
-  TOKEN_EOL,
-  TOKEN_OTHER,
-  TOKEN_BREAKLINE,
-} TokenType;
-
-typedef struct {
-  TokenType type;
-  const char *start;
-  size_t len;
-  size_t line;
-
-  size_t pos;
-  Color color;
-} Token;
-
-typedef struct {
-  const char* start;
-  const char* current;
-  size_t cursor;
-  int line;
-} Scanner;
-
-// typedef struct {
-//   Token *items;
-//   size_t size;
-//   size_t capacity;
-// } TokenList;
+#include "ds.h"
 
 void draw_text_tokenized(const char *text, Font font, Vector2 position, float fontSize, float spacing);
+void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines lines);
+void draw_selection(Cursor cursor, Lines lines, Text text, Font font, Vector2 font_measuring);
 
 #endif // !DRAW_H

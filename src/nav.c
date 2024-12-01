@@ -78,7 +78,7 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
     __selection_move_left(cursor);
   } 
   else {
-    if (cursor->pos == lines->lines[cursor->current_line].end-1 && cursor->current_line < lines->size) {
+    if (cursor->pos == lines->lines[cursor->current_line].end-1 && cursor->current_line < lines->size-1) {
       cursor->current_line++;
       cursor->line_pos = 0;
       cursor->pos++;
