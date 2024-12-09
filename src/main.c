@@ -7,30 +7,12 @@
 #include "ins.h"
 #include "cam.h"
 #include "draw.h"
-
-// Vector2 measure_text_part(Text *text, Font font, size_t start, size_t range) {
-//   if (range <= 0) {
-//     Vector2 measurement_ = { 0, 0 };
-//     return measurement_;
-//   }
-//   char part[range];
-//   strncpy(part, text->text+start, range);
-//   part[range] = '\0';
-//   Vector2 measurement = MeasureTextEx(font, part, font.baseSize, RFONT_SPACING);
-//   return measurement;
-// }
-
-size_t clamp(size_t n, size_t min, size_t max){
-  size_t m = n;
-  if (n > max) m = max;
-  else if (n < min) m = min;
-  return m;
-}
+#include "explorer.h"
 
 int main(int argc, char **argv) 
 {
   Text text;
-  init_text(&text, 8); //BUG if text is initialized after loading file some bug causes text to have problems when drawing
+  init_text(&text, 8);
   Lines lines;
   init_lines(&lines, 10);
   Cursor cursor;
@@ -43,31 +25,33 @@ int main(int argc, char **argv)
   cursor_display.y = 0;
 
   Editor editor;
+  Explorer explorer;
+  explorer_init(&explorer);
+  bool start_write_mode;
 
-  char *FILE_PATH;
   if (argc == 1) {
-    FILE_PATH = NULL;
+    explorer_load_path(&explorer, ".");
+    start_write_mode = true;
   }
-  else if (argc == 2) {
-    FILE_PATH = argv[1];
-    printf("\nFILE_PATH: %s\n", FILE_PATH);
-    char *source = LoadFileText(FILE_PATH);
-    size_t len = strlen(source);
-    for (size_t i = 0; i < len; ++i) {
-      if (source[i] == '\n' || source[i] == '\r') new_line(&text, &lines, &cursor);
-      else if (source[i] == '\t') {
-        insert_text(&text, '-', &cursor, &lines);
-        insert_text(&text, '-', &cursor, &lines);
-      }
-      else if (source[i] == '\0') break;
-      else insert_text(&text, source[i], &cursor, &lines);
+  else if (argc >= 2) {
+    const char *path = argv[1];
+    if (!DirectoryExists(path) || !FileExists(path)) {
+      puts("You may provide a valid file path of directory path");
+      exit(69);
     }
-    cursor_move_start(&cursor);
-    UnloadFileText(source);
-  }
-  else {
-    printf("\nUSAGE: red [FILE_PATH]\n");
-    exit(1);
+
+    if (IsPathFile(path)) {
+      insert_text_from_file(path, &text, &lines, &cursor);
+      cursor_move_start(&cursor);
+      start_write_mode = true;
+
+      const char *directory = GetDirectoryPath(path);
+      explorer_load_path(&explorer, directory);
+    }
+    else {
+      explorer_load_path(&explorer, path);
+      start_write_mode = false;
+    }
   }
 
   SetConfigFlags(FLAG_WINDOW_UNDECORATED);
@@ -78,12 +62,9 @@ int main(int argc, char **argv)
   if (!IsFontValid(font)) {
     font = GetFontDefault();
   }
-  float input_delay = 0.1f; //when key is constantly pressed
-  float input_lasttime = 0.0f;
   Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
 
-  // init_editor(&editor, GW, GH, font_measuring.y);
-  init_editor(&editor, &cursor, &lines, &text, font, GW, GH);
+  init_editor(&editor, &cursor, &lines, &text, font, GW, GH, start_write_mode);
 
   update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
 
@@ -93,116 +74,105 @@ int main(int argc, char **argv)
       editor.write_mode = !editor.write_mode;
     }
 
-    int key = GetCharPressed();
-    while (key > 0) {
-      if (key >= 0 && key <= 255) {
-        insert_text(&text, (char)key, &cursor, &lines);
-        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
-        move_cam_right(&camera, cursor_display.x, font_measuring.y);
+    //WARNING put this on input events
+    // update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+
+    //Drawing
+    //---------------------------------------------
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    if (editor.write_mode) {
+
+      int key = GetCharPressed();
+      while (key > 0) {
+        printf("-> key: %d\n", key);
+        if (key >= 0 && key <= 255) {
+          insert_text(&text, (char)key, &cursor, &lines);
+          update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+          move_cam_right(&camera, cursor_display.x, font_measuring.y);
+        }
+        key = GetCharPressed();
       }
-      key = GetCharPressed();
-    }
 
-    float current_time = GetTime();
-    if (current_time - input_lasttime >= input_delay) {
-      if (IsKeyDown(KEY_RIGHT) && cursor.pos < text.capacity) { 
+
+      if (IsKeyPressed(KEY_RIGHT) && cursor.pos < text.capacity) { 
         cursor_move_h(&cursor, &lines, false);
-        input_lasttime = current_time;
-
         update_cam_offset_down(&cursor, &lines, editor.max_lines);
         move_cam_right(&camera, cursor_display.x, font_measuring.y);
-
         update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         if (cursor.line_pos == 0) {
           move_cam_left(&camera, cursor_display.x, font_measuring.y);
         }
       } 
-      else if (IsKeyDown(KEY_LEFT) && cursor.pos > 0) {
+      else if (IsKeyPressed(KEY_LEFT) && cursor.pos > 0) {
         cursor_move_h(&cursor, &lines, true);
-        input_lasttime = current_time;
-
         update_cam_offset_up(&cursor, &lines);
         move_cam_left(&camera, cursor_display.x, font_measuring.y);
-
         update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         if (cursor.line_pos >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
           move_cam_right(&camera, cursor_display.x, font_measuring.y);
         }
       }
-      else if (IsKeyDown(KEY_UP)) {
-        input_lasttime = current_time;
+      else if (IsKeyPressed(KEY_UP)) {
         cursor_move_v(&cursor, &lines, -1);
-
         update_cam_offset_up(&cursor, &lines);
       }
-      else if (IsKeyDown(KEY_DOWN)) {
-        input_lasttime = current_time;
-        cursor_move_v(&cursor, &lines, 1); //WARNING make cursor_move_up/down
-
+      else if (IsKeyPressed(KEY_DOWN)) {
+        cursor_move_v(&cursor, &lines, 1);
         update_cam_offset_down(&cursor, &lines, editor.max_lines);
       }
 
-      if (IsKeyDown(KEY_ENTER)) {
+      if (IsKeyPressed(KEY_ENTER)) {
         new_line(&text, &lines, &cursor);
-        input_lasttime = current_time;
-
         update_cam_offset_down(&cursor, &lines, editor.max_lines);
-
         update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         move_cam_left(&camera, cursor_display.x, font_measuring.y);
       }
 
-      if (IsKeyDown(KEY_BACKSPACE)) {
+      if (IsKeyPressed(KEY_BACKSPACE)) {
         delete_text(&text, &cursor, &lines);
-        input_lasttime = current_time;
-
-        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);//----- WARNING Duplicated Code
-        move_cam_left(&camera, cursor_display.x, font_measuring.y); //------------------------------ WARNING Duplicated Code
-        if (cursor.line_pos >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) { //------
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring); 
+        move_cam_left(&camera, cursor_display.x, font_measuring.y); 
+        if (cursor.line_pos >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
           move_cam_right(&camera, cursor_display.x, font_measuring.y);
         }
       }
 
-      if (IsKeyDown(KEY_TAB)) { //TODO this could be a loop that iterates n (indent config) times!
+      if (IsKeyPressed(KEY_TAB)) {
         insert_text(&text, ' ', &cursor, &lines);
         insert_text(&text, ' ', &cursor, &lines);
-        input_lasttime = current_time;
       }
 
-      if (IsKeyDown(KEY_DELETE) && text.capacity > 0 && cursor.pos < text.capacity) { 
+      if (IsKeyPressed(KEY_DELETE) && text.capacity > 0 && cursor.pos < text.capacity) { 
         cursor_move_h(&cursor, &lines, false);
         delete_text(&text, &cursor, &lines);
-        input_lasttime = current_time;
       }
 
-      if (IsKeyDown(KEY_LEFT_SHIFT)) {
+      if (IsKeyPressed(KEY_LEFT_SHIFT)) {
         cursor.is_selecting = true;
         if (cursor.selection_end - cursor.selection_begin <= 0) {
           cursor.selection_begin = cursor.pos;
           cursor.selection_end = cursor.pos;
         }
       }
-      if (IsKeyUp(KEY_LEFT_SHIFT)) cursor.is_selecting = false;
+      if (IsKeyReleased(KEY_LEFT_SHIFT)) cursor.is_selecting = false;
 
       if (IsKeyDown(KEY_LEFT_CONTROL)) {
-        if (IsKeyPressed(KEY_V)) {
-          paste_text(&text, &cursor, &lines);
+        if (IsKeyPressed(KEY_C)) copy_text(&text, &cursor);
+        else if (IsKeyPressed(KEY_V) && paste_text(&text, &cursor, &lines)) {
+          update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         }
-        if (IsKeyPressed(KEY_C)) {
-          copy_text(&text, &cursor);
+        else if (IsKeyPressed(KEY_X) && cut_text(&text, &cursor, &lines)) {
+          update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         }
-        if (IsKeyPressed(KEY_X)) {
-          cut_text(&text, &cursor, &lines);
-        }
-
-        if (IsKeyPressed(KEY_HOME)) {
+        else if (IsKeyPressed(KEY_HOME)) {
           cursor_move_start(&cursor);
-          
+          update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
           move_cam_start(&camera, &lines);
         }
-        if (IsKeyPressed(KEY_END)) {
+        else if (IsKeyPressed(KEY_END)) {
           cursor_move_end(&cursor, &lines);
-
           update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
           move_cam_end(&camera, &lines, editor.max_lines);
           move_cam_right(&camera, cursor_display.x, font_measuring.y);
@@ -211,44 +181,53 @@ int main(int argc, char **argv)
 
       if (IsKeyPressed(KEY_HOME)) {
         cursor_move_sol(&cursor, &lines);
-
         update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         move_cam_left(&camera, cursor_display.x, font_measuring.y);
       }
       if (IsKeyPressed(KEY_END)) {
         cursor_move_eol(&cursor, &lines);
-
         update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         move_cam_right(&camera, cursor_display.x, font_measuring.y);
       }
-    }
 
-    //WARNING put this on input events
-    update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
-
-    //Drawing
-    //---------------------------------------------
-    BeginDrawing();
-    ClearBackground(BLACK);
-
-    if (editor.write_mode == true) {
-      BeginMode2D(camera);
 
       camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
+      BeginMode2D(camera);
 
       draw_text_tokenized(text.text, font, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING );
       draw_line_numbers(camera, font, font_measuring, lines);
-      DrawTextEx(font, "|", cursor_display, font.baseSize, 0, RED);
+      DrawText("|", cursor_display.x, cursor_display.y, font.baseSize, RED);
       draw_selection(cursor, lines, text, font, font_measuring);
 
       EndMode2D();
     } 
     else {
-      DrawTextEx(font, "navigation", (Vector2){20, 20}, font.baseSize, RFONT_SPACING, WHITE);
-    }
-    
+      explorer_input(&explorer);
+      if (IsKeyReleased(KEY_ENTER) && explorer.cursor == -1) {
+        explorer_load_prevpath(&explorer);
+      }
+      else if (IsKeyReleased(KEY_ENTER) && explorer.cursor > -1) {
+        char *selected_path = explorer.filepath_list.paths[explorer.cursor];
+        if (IsPathFile(selected_path) && FileExists(selected_path)) {
+          memset(text.text, '\0', text.capacity);
+          lines.offset = 0;
+          lines.size = 1;
+          init_cursor(&cursor); // safe, no malloc stuff
+          init_camera(&camera); // ... //
+          init_editor(&editor, &cursor, &lines, &text, font, GW, GH, true);
+          cursor_display.x = 0; //NOTE cursor_display should be part of editor
+          cursor_display.y = 0;
+          
+          insert_text_from_file(selected_path, &text, &lines, &cursor);
+          cursor_move_start(&cursor);
+        } 
+        else if (DirectoryExists(selected_path)) {
+          explorer_load_path(&explorer, selected_path);
+        }
 
-    // Status bar 
+      }
+      explorer_draw(&explorer, font, font_measuring);
+    }
     
     DrawRectangle(0, GH - 40, GW, 40, BLUE);
     DrawText(TextFormat(
@@ -258,15 +237,14 @@ int main(int argc, char **argv)
       cursor.selection_begin, cursor.selection_end,
       lines.offset
     ), 140, GH - 30, 20, BLACK);
-
     DrawText(TextFormat("%d", GetFPS()), 20, GH-30, 20, BLACK);
-    // DrawFPS(20, GH-30);
 
     EndDrawing();
   }
   
   UnloadFont(font);
   CloseWindow();
+  explorer_free(&explorer);
   free_text(&text);
   free_lines(&lines);
   return 0;

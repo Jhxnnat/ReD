@@ -15,6 +15,8 @@
 #define RFONT_SIZE 24
 #define MAX_LINES 11
 
+//TODO define colors
+
 typedef struct {
   size_t capacity;
   size_t size;
@@ -52,8 +54,10 @@ typedef struct {
   Font font;
   Vector2 font_measuring;
 
+  Vector2 cursor_display;
   int max_lines;
   int hori_offset;
+
   bool write_mode;
 } Editor;
 
@@ -63,7 +67,7 @@ void init_cursor(Cursor *c);
 void init_lines(Lines *lines, size_t initial_capacity);
 void free_lines(Lines *lines);
 
-void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h);
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool write_mode);
 
 #endif // !DS_H
 

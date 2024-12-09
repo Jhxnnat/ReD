@@ -164,7 +164,6 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
 
   if (!cursor->is_selecting) selection_reset(cursor); //TODO could get rid of this if and make __selection_reset return 0 if the selection was reset
   else __selection_move_down(cursor, prev_pos);
-
 }
 
 void update_cursor_display(Vector2 *cursor_display, Text *text, Cursor *cursor, Lines *lines, Font font, Vector2 font_measuring) {

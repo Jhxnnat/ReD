@@ -12,7 +12,8 @@ void init_text(Text *t, size_t size) {
 void free_text(Text *t) {
   free(t->text);
   t->text = NULL;
-  t->capacity = t->size = 0;
+  t->capacity = 0;
+  t->size = 0;
 }
 
 void init_cursor(Cursor *c) {
@@ -41,10 +42,11 @@ void init_lines(Lines *lines, size_t initial_capacity) {
 void free_lines(Lines *lines) {
   free(lines->lines);
   lines->lines = NULL;
-  lines->capacity = lines->size = 0;
+  lines->capacity = 0;
+  lines->size = 0;
 }
 
-void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h) {
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool write_mode) {
   if (window_h <= 0 || window_w <= 0) {
     printf("negative windows haven't been invented yet\n");
     exit(44);
@@ -56,11 +58,13 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font 
   float font_height = font_measuring.y;
   editor->max_lines = window_h / font_height;
   editor->max_lines -= 4;
-
   editor->hori_offset = 0;
-  editor->write_mode = true;
+  editor->cursor_display.x = 0;
+  editor->cursor_display.y = 0;
 
   editor->lines = lines;
   editor->text = text;
   editor->cursor = cursor;
+
+  editor->write_mode = write_mode;
 }

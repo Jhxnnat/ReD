@@ -4,12 +4,13 @@
 #include "nav.h"
 
 void insert_text(Text *t, char c, Cursor *cu, Lines *lines);
-void delete_text(Text *t, Cursor *cur, Lines *lines);
-char *_delete_text(Text *t, Cursor *cur, Lines *lines);
+void delete_text(Text *t, Cursor *c, Lines *lines);
+// char *_delete_text(Text *t, Cursor *c, Lines *lines);
+void insert_text_from_file(const char *path, Text *text, Lines *lines, Cursor *cursor);
 
-void paste_text(Text *text, Cursor *cursor, Lines *lines);
 void copy_text(Text *text, Cursor *cursor);
-void cut_text(Text *text, Cursor *cursor, Lines *lines);
+bool paste_text(Text *text, Cursor *cursor, Lines *lines);
+bool cut_text(Text *text, Cursor *cursor, Lines *lines);
 
 void resize_lines(Lines *lines);
 void update_lines(Lines *lines, size_t line_num, size_t start, size_t end);

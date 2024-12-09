@@ -40,19 +40,24 @@ void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
   cu->selection_end = cu->pos;
 }
 
+void insert_text_from_file(const char *path, Text *text, Lines *lines, Cursor *cursor) {
+  char *source = LoadFileText(path);
+  size_t len = TextLength(source);
+  for (size_t i = 0; i < len; ++i) {
+    if (source[i] == '\n') new_line(text, lines, cursor);
+    else if (source[i] == '\r') insert_text(text, ' ', cursor, lines);
+    else if (source[i] == '\t') {
+      insert_text(text, ' ', cursor, lines);
+      insert_text(text, ' ', cursor, lines);
+    }
+    else if (source[i] == '\0') break; //NOTE is this needed?
+    else insert_text(text, source[i], cursor, lines);
+  }
+  UnloadFileText(source);
+}
+
 char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
   
-  /// Deleting a selection: 
-  // easy way: put cursor in selection_end, delete char per char in a loop
-  // not so easy way: 
-  //   if there one of two line selected just do the easy way
-  //   if there are multiple lines selected we:
-  //      - easy way on final line 
-  //      - delete all betwen lines, update selection lines.lines etc 
-  //      - easy way on first line 
-  //      - memmove 
-
-  //lets go easy way for now 
   size_t repeat = 1;
   const size_t selection_range = cur->selection_end - cur->selection_begin;
   if (selection_range > 0) {
@@ -103,33 +108,70 @@ char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
     t->capacity--;
   }
 
-  if (selection_range > 0) {
-    cur->selection_begin = cur->pos;
-    cur->selection_end = cur->pos;
-    cur->selection_line_begin = cur->current_line;
-    cur->selection_line_end = cur->current_line;
-  }
-
-  //NOTE I think this isn't necessary
-  // //Move cam up if necessary
-  // update_cam_offset_up(cur, lines);
+  selection_reset(cur);
 
   return deleted;
 }
 
 void delete_text(Text *t, Cursor *c, Lines *l) {
-  char *_d = _delete_text(t,c,l);
-  free(_d);
+
+  /// Deleting a selection: 
+  // dumb way: put cursor in selection_end, delete char per char in a loop
+  // not so dumb easy way: 
+  //   if there one of two line selected just do the easy way
+  //   if there are multiple lines selected we:
+  //      - easy way on final line 
+  //      - delete all betwen lines, update selection lines.lines etc 
+  //      - easy way on first line 
+  //      - memmove?
+
+  //lets go easy (dumb) way for now 
+  size_t repeat = 1;
+  const size_t selection_range = c->selection_end - c->selection_begin;
+  if (selection_range > 0) {
+    repeat = selection_range;
+    c->current_line = c->selection_line_end;
+    c->pos = c->selection_end;
+    c->line_pos = c->selection_end - l->lines[c->current_line].start;
+  }
+
+  if ((t->capacity <= 0) || (c->pos <= 0)) {
+    return;
+  }
+
+  while (repeat > 0) { //TODO make some of this into one function to share betwen _delete (cut) and delete
+    repeat--;
+    if (c->line_pos == 0) {
+      c->current_line--;
+      l->size--;
+
+      int diff = l->lines[c->current_line].end-l->lines[c->current_line].start-1;
+      c->line_pos = diff;
+
+      l->lines[c->current_line].end = l->lines[c->current_line+1].end-1;
+      for (size_t i = c->current_line+1; i < l->size; ++i) {
+        l->lines[i].start = l->lines[i+1].start-1;
+        l->lines[i].end = l->lines[i+1].end-1;
+      }
+    } 
+    else {
+      c->line_pos--;
+      l->lines[c->current_line].end--;
+      for (size_t i = c->current_line+1; i <= l->size; ++i) {
+        l->lines[i].start--;
+        l->lines[i].end--;
+      }
+    }
+
+    c->pos--;
+    memmove(t->text+c->pos, t->text+c->pos+1, t->capacity-c->pos+1);
+    t->text[t->capacity] = '\0';
+    t->capacity--;
+  }
+
+  selection_reset(c);
 }
 
-void cut_text(Text *text, Cursor *cursor, Lines *lines) {
-  size_t selection_range = cursor->selection_end - cursor->selection_begin;
-  if (selection_range > 0) {
-    char *_d = _delete_text(text, cursor, lines);
-    SetClipboardText(_d);
-    free(_d);
-  }
-}
 
 void resize_lines(Lines *lines) {
     const size_t new_capacity = lines->capacity * 2;
@@ -178,15 +220,17 @@ void new_line(Text *text, Lines *lines, Cursor *c) {
 }
 
 
-void paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for, \t, \r etc to insert them manualy
+bool paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for, \t, \r etc to insert them manualy
   const char *source = GetClipboardText();
   const size_t len = strlen(source);
+  if (len == 0) return false;
   
   for (size_t i = 0; i < len; ++i) {
     if (source[i] == '\n') new_line(text, lines, cursor);
     else if (source[i] == '\0') continue;
     else insert_text(text, source[i], cursor, lines);
   }
+  return true;
 }
 
 void copy_text(Text *text, Cursor *cursor) { //TODO add copy line feature if nothing is selected
@@ -195,10 +239,19 @@ void copy_text(Text *text, Cursor *cursor) { //TODO add copy line feature if not
   char copied_text[range];
   strncpy(copied_text, text->text + cursor->selection_begin, range);
   copied_text[range] = '\0';
-  printf("copied_text: %s", copied_text);
+  printf("copied_text: %s\n", copied_text);
   SetClipboardText(copied_text);
   cursor->selection_begin = cursor->pos;
   cursor->selection_end = cursor->pos;
   cursor->selection_line_begin = cursor->current_line;
   cursor->selection_line_end = cursor->current_line;
+}
+
+bool cut_text(Text *text, Cursor *cursor, Lines *lines) {
+  size_t selection_range = cursor->selection_end - cursor->selection_begin; //NOTE be careful when begin > end, selection_range cound end up being a big num
+  if (selection_range == 0) return false;
+  char *_d = _delete_text(text, cursor, lines);
+  SetClipboardText(_d);
+  free(_d);
+  return true;
 }
