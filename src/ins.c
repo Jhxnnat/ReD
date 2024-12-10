@@ -56,59 +56,64 @@ void insert_text_from_file(const char *path, Text *text, Lines *lines, Cursor *c
   UnloadFileText(source);
 }
 
-char *_delete_text(Text *t, Cursor *cur, Lines *lines) {
+void _delete_recalculate_lines(Cursor *c, Lines *l) {
+  if (c->line_pos == 0) {
+    c->current_line--;
+    l->size--;
+
+    int diff = l->lines[c->current_line].end-l->lines[c->current_line].start-1;
+    c->line_pos = diff;
+
+    l->lines[c->current_line].end = l->lines[c->current_line+1].end-1;
+    for (size_t i = c->current_line+1; i < l->size; ++i) {
+      l->lines[i].start = l->lines[i+1].start-1;
+      l->lines[i].end = l->lines[i+1].end-1;
+    }
+  } 
+  else {
+    c->line_pos--;
+    l->lines[c->current_line].end--;
+    for (size_t i = c->current_line+1; i <= l->size; ++i) {
+      l->lines[i].start--;
+      l->lines[i].end--;
+    }
+  }
+}
+
+char *_delete_text(Text *t, Cursor *c, Lines *l) {
   
   size_t repeat = 1;
-  const size_t selection_range = cur->selection_end - cur->selection_begin;
+  const size_t selection_range = c->selection_end - c->selection_begin;
   if (selection_range > 0) {
     repeat = selection_range;
-    cur->current_line = cur->selection_line_end;
-    cur->pos = cur->selection_end;
-    cur->line_pos = cur->selection_end - lines->lines[cur->current_line].start;
+    c->current_line = c->selection_line_end;
+    c->pos = c->selection_end;
+    c->line_pos = c->selection_end - l->lines[c->current_line].start;
   }
 
   char* deleted = (char*)malloc(selection_range+1);
 
-  if ((t->capacity <= 0) || (cur->pos <= 0)) {
+  if ((t->capacity <= 0) || (c->pos <= 0)) {
     return deleted;
   }
 
   deleted[selection_range] = '\0';
   if (selection_range > 0) {
-    strncpy(deleted, t->text + cur->selection_begin, selection_range);
+    strncpy(deleted, t->text + c->selection_begin, selection_range);
   }
 
   while (repeat > 0) {
     repeat--;
-    if (cur->line_pos == 0) {
-      cur->current_line--;
-      lines->size--;
 
-      int diff = lines->lines[cur->current_line].end-lines->lines[cur->current_line].start-1;
-      cur->line_pos = diff;
+    _delete_recalculate_lines(c, l);
 
-      lines->lines[cur->current_line].end = lines->lines[cur->current_line+1].end-1;
-      for (size_t i = cur->current_line+1; i < lines->size; ++i) {
-        lines->lines[i].start = lines->lines[i+1].start-1;
-        lines->lines[i].end = lines->lines[i+1].end-1;
-      }
-    } 
-    else {
-      cur->line_pos--;
-      lines->lines[cur->current_line].end--;
-      for (size_t i = cur->current_line+1; i <= lines->size; ++i) {
-        lines->lines[i].start--;
-        lines->lines[i].end--;
-      }
-    }
-
-    cur->pos--;
-    memmove(t->text+cur->pos, t->text+cur->pos+1, t->capacity-cur->pos+1);
+    c->pos--;
+    memmove(t->text+c->pos, t->text+c->pos+1, t->capacity-c->pos+1);
     t->text[t->capacity] = '\0';
     t->capacity--;
   }
 
-  selection_reset(cur);
+  selection_reset(c);
 
   return deleted;
 }
@@ -127,7 +132,7 @@ void delete_text(Text *t, Cursor *c, Lines *l) {
 
   //lets go easy (dumb) way for now 
   size_t repeat = 1;
-  const size_t selection_range = c->selection_end - c->selection_begin;
+  const int selection_range = c->selection_end - c->selection_begin;
   if (selection_range > 0) {
     repeat = selection_range;
     c->current_line = c->selection_line_end;
@@ -141,27 +146,8 @@ void delete_text(Text *t, Cursor *c, Lines *l) {
 
   while (repeat > 0) { //TODO make some of this into one function to share betwen _delete (cut) and delete
     repeat--;
-    if (c->line_pos == 0) {
-      c->current_line--;
-      l->size--;
 
-      int diff = l->lines[c->current_line].end-l->lines[c->current_line].start-1;
-      c->line_pos = diff;
-
-      l->lines[c->current_line].end = l->lines[c->current_line+1].end-1;
-      for (size_t i = c->current_line+1; i < l->size; ++i) {
-        l->lines[i].start = l->lines[i+1].start-1;
-        l->lines[i].end = l->lines[i+1].end-1;
-      }
-    } 
-    else {
-      c->line_pos--;
-      l->lines[c->current_line].end--;
-      for (size_t i = c->current_line+1; i <= l->size; ++i) {
-        l->lines[i].start--;
-        l->lines[i].end--;
-      }
-    }
+    _delete_recalculate_lines(c, l);
 
     c->pos--;
     memmove(t->text+c->pos, t->text+c->pos+1, t->capacity-c->pos+1);

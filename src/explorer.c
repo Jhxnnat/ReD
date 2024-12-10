@@ -42,7 +42,7 @@ void explorer_draw(Explorer *e, Font font, Vector2 font_measuring) {
   }
   for (size_t i = 0; i < e->filepath_list.count; ++i) {
     DrawTextEx(font, e->filepath_list.paths[i], (Vector2){20, 20 + (font_measuring.y * (i+1)) }, font.baseSize, RFONT_SPACING, WHITE);
-    if (e->cursor == i) {
+    if (e->cursor == (int)i) {
       DrawRectangle(20, 20 + (font_measuring.y * (i+1)), GW-40, font_measuring.y, (Color){255, 255, 255, 100});
     }
   }
@@ -58,7 +58,7 @@ void explorer_free(Explorer *e) {
 void explorer_input(Explorer *e) {
   if (IsKeyPressed(KEY_UP) && e->cursor > -1) {
     e->cursor--;
-  } else if (IsKeyPressed(KEY_DOWN) && e->cursor+1 < e->filepath_list.count) {
+  } else if (IsKeyPressed(KEY_DOWN) && e->cursor+1 < (int)e->filepath_list.count) {
     e->cursor++;
   }
 }

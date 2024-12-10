@@ -56,12 +56,6 @@ void draw_text_tokenized(const char *text, Font font, Vector2 position, float fo
 
 void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines lines){
   ////Lines num NOTE consider draw a part of the lines to optimize 
-  //back
-  DrawRectangle(camera.target.x, camera.target.y, RTEXT_LEFT - 3, GH, BLACK);
-  // lines
-  DrawRectangle(camera.target.x + RTEXT_LEFT-6, camera.target.y, 3, GH, ORANGE);
-  DrawRectangle(camera.target.x - 3, camera.target.y, 3, GH, ORANGE);
-  DrawRectangle(camera.target.x + GW-3, camera.target.y, 3, GH, ORANGE);
 
   for (size_t i = 1; i < lines.size+1; ++i) {
     const char *t = TextFormat("%d", i);

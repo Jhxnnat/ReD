@@ -57,6 +57,11 @@ int main(int argc, char **argv)
   SetConfigFlags(FLAG_WINDOW_UNDECORATED);
   InitWindow(GW, GH, NAME);
   SetExitKey(0);
+
+  Shader crt = LoadShader(0, "./assets/crt.glsl");
+  int sh_time_loc = GetShaderLocation(crt, "seconds");
+  float sh_time = 0.0f;
+  SetShaderValue(crt, sh_time_loc, &sh_time, SHADER_UNIFORM_FLOAT);
   
   Font font = LoadFontEx("./assets/big-blue-term.ttf", RFONT_SIZE, NULL, 0);
   if (!IsFontValid(font)) {
@@ -65,17 +70,16 @@ int main(int argc, char **argv)
   Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
 
   init_editor(&editor, &cursor, &lines, &text, font, GW, GH, start_write_mode);
-
   update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
 
   while (!WindowShouldClose()) {
+
+    sh_time += GetFrameTime();
+    SetShaderValue(crt, sh_time_loc, &sh_time, SHADER_UNIFORM_FLOAT);
     
     if (IsKeyPressed(KEY_ESCAPE)) {
       editor.write_mode = !editor.write_mode;
     }
-
-    //WARNING put this on input events
-    // update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
 
     //Drawing
     //---------------------------------------------
@@ -86,7 +90,6 @@ int main(int argc, char **argv)
 
       int key = GetCharPressed();
       while (key > 0) {
-        printf("-> key: %d\n", key);
         if (key >= 0 && key <= 255) {
           insert_text(&text, (char)key, &cursor, &lines);
           update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
@@ -116,10 +119,12 @@ int main(int argc, char **argv)
       }
       else if (IsKeyPressed(KEY_UP)) {
         cursor_move_v(&cursor, &lines, -1);
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         update_cam_offset_up(&cursor, &lines);
       }
       else if (IsKeyPressed(KEY_DOWN)) {
         cursor_move_v(&cursor, &lines, 1);
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
         update_cam_offset_down(&cursor, &lines, editor.max_lines);
       }
 
@@ -142,6 +147,7 @@ int main(int argc, char **argv)
       if (IsKeyPressed(KEY_TAB)) {
         insert_text(&text, ' ', &cursor, &lines);
         insert_text(&text, ' ', &cursor, &lines);
+        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
       }
 
       if (IsKeyPressed(KEY_DELETE) && text.capacity > 0 && cursor.pos < text.capacity) { 
@@ -194,10 +200,19 @@ int main(int argc, char **argv)
       camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
       BeginMode2D(camera);
 
+      DrawRectangle(camera.target.x, camera.target.y, RTEXT_LEFT - 3, GH, BLACK);
+      // DrawRectangle(camera.target.x + RTEXT_LEFT-6, camera.target.y, 3, GH, ORANGE);
+      // DrawRectangle(camera.target.x - 3, camera.target.y, 3, GH, ORANGE);
+      // DrawRectangle(camera.target.x + GW-3, camera.target.y, 3, GH, ORANGE);
+
+      BeginShaderMode(crt);
+
       draw_text_tokenized(text.text, font, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING );
       draw_line_numbers(camera, font, font_measuring, lines);
       DrawText("|", cursor_display.x, cursor_display.y, font.baseSize, RED);
       draw_selection(cursor, lines, text, font, font_measuring);
+
+      EndShaderMode();
 
       EndMode2D();
     } 
@@ -242,6 +257,7 @@ int main(int argc, char **argv)
     EndDrawing();
   }
   
+  UnloadShader(crt);
   UnloadFont(font);
   CloseWindow();
   explorer_free(&explorer);
