@@ -35,12 +35,10 @@
     - [ ] test more and more and more
     - [no] works perfect
 - [x] draw just a part of the text? 
-
+- [ ] draw optimization
 - [ ] write and test more and more and more and more? (optional)
 
 - [ ] resizable window
-
-- [ ] please rewrite delete text function, is making really unnecesari malloc uses 
 
 ## funny
 - [x] simple syntax highlighting (C)
@@ -51,14 +49,14 @@
 
 ## do not want to implement
 - [ ] themes
-- [ ] custom-shortcuts (cutomization in general)
+- [ ] cutomization 
 
 ## fancy features
 - [ ] sort of vim motions
 - [ ] automatic close brackets: [], {}, ()
 - [ ] new line keeps indentation
 
-## this is not going happen
-- [ ] LSP - error lens
+## this is not going to happen
+- [ ] LSP error lens like stuff
 - [ ] api (scripting)
 - [ ] code completition

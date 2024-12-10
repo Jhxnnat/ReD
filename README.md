@@ -7,3 +7,4 @@ Red stants for Retro eDitor, maybe Raylib eDitor (just coincidence)
 - raylib [repo](https://github.com/raysan5/raylib)
 - [nerd fonts](https://www.nerdfonts.com/) are used
 - [crafting interpreters](https://craftinginterpreters.com/scanning-on-demand.html) book (used this to make text tokenization)
+- crt shader inspired by this [video](https://youtu.be/aWdySZ0BtJs)
