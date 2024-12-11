@@ -162,7 +162,7 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
   cursor->pos = lines->lines[cursor->current_line].start;
   cursor->line_pos = 0;
 
-  if (!cursor->is_selecting) selection_reset(cursor); //TODO could get rid of this if and make __selection_reset return 0 if the selection was reset
+  if (!cursor->is_selecting) selection_reset(cursor);
   else __selection_move_down(cursor, prev_pos);
 }
 

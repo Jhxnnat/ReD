@@ -18,47 +18,47 @@
 //TODO define colors
 
 typedef struct {
-  size_t capacity;
-  size_t size;
-  char   *text;
+    size_t capacity;
+    size_t size;
+    char   *text;
 } Text;
 
 typedef struct {
-  size_t start;
-  size_t end;
+    size_t start;
+    size_t end;
 } Line;
 
 typedef struct {
-  size_t size;
-  size_t capacity;
-  Line   *lines;
-  size_t offset; //WARNING this can be vert_offset on Editor
+    size_t size;
+    size_t capacity;
+    Line   *lines;
+    size_t offset; //WARNING this can be vert_offset on Editor
 } Lines;
 
 typedef struct {
-  size_t pos; 
-  size_t line_pos; //TODO change this to: column
-  size_t current_line;
-  bool is_selecting;
-  size_t selection_begin; 
-  size_t selection_end;
-  size_t selection_line_begin;
-  size_t selection_line_end;
+    size_t pos; 
+    size_t line_pos; //TODO change this to: column
+    size_t current_line;
+    bool is_selecting;
+    size_t selection_begin; 
+    size_t selection_end;
+    size_t selection_line_begin;
+    size_t selection_line_end;
 } Cursor;
 
 typedef struct {
-  Cursor *cursor;
-  Lines *lines;
-  Text *text;
-  
-  Font font;
-  Vector2 font_measuring;
+    Cursor *cursor;
+    Lines *lines;
+    Text *text;
 
-  Vector2 cursor_display;
-  int max_lines;
-  int hori_offset;
+    Font font;
+    Vector2 font_measuring;
 
-  bool write_mode;
+    Vector2 cursor_display;
+    int max_lines;
+    int hori_offset;
+
+    bool write_mode;
 } Editor;
 
 void init_text(Text *t, size_t size);

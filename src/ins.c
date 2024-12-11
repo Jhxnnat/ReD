@@ -6,156 +6,156 @@
 // #include "cam.h"
 
 void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
-  if (cu->pos > t->capacity) cu->pos = t->capacity;
+    if (cu->pos > t->size) cu->pos = t->size;
 
-  const size_t selection_range = cu->selection_end - cu->selection_begin;
-  if (selection_range > 0) {
-    delete_text(t, cu, lines);
-  }
-
-  if (t->capacity >= t->size) { //TODO this should be a separate function!
-    t->size *= 2;
-    char *temp = realloc(t->text, (t->size) * sizeof(char));
-    if (temp == NULL) {
-      printf("Error realloc!!!\n");
-      exit(0);
-    } else { 
-      t->text = temp;
+    const size_t selection_range = cu->selection_end - cu->selection_begin;
+    if (selection_range > 0) {
+        delete_text(t, cu, lines);
     }
-  }
-  t->capacity++;
-  memmove(t->text+cu->pos+1, t->text+cu->pos, t->capacity-cu->pos+1);
-  t->text[cu->pos] = c;
-  cu->pos++;
-  cu->line_pos++;
-  lines->lines[cu->current_line].end += 1;
-  if (cu->current_line < lines->size-1) {
-    for (size_t i = cu->current_line+1; i < lines->size; ++i) { // move other lines when inserting before last line
-      lines->lines[i].start++;
-      lines->lines[i].end++;
-    }
-  }
 
-  cu->selection_begin = cu->pos;
-  cu->selection_end = cu->pos;
+    if (t->size >= t->capacity) { //TODO should be a separate function
+        t->capacity *= 2;
+        char *temp = realloc(t->text, (t->capacity) * sizeof(char));
+        if (temp == NULL) {
+            printf("Error realloc!!!\n");
+            exit(0);
+        } else { 
+            t->text = temp;
+        }
+    }
+
+    t->size++;
+    memmove(t->text + cu->pos+1, t->text + cu->pos, t->size - cu->pos+1);
+    t->text[cu->pos] = c;
+    cu->pos++;
+    cu->line_pos++;
+    lines->lines[cu->current_line].end += 1;
+
+    if (cu->current_line < lines->size-1) {
+        for (size_t i = cu->current_line+1; i < lines->size; ++i) { // move other lines when inserting before last line
+            lines->lines[i].start++;
+            lines->lines[i].end++;
+        }
+    }
+
+    cu->selection_begin = cu->pos;
+    cu->selection_end = cu->pos;
 }
 
 void insert_text_from_file(const char *path, Text *text, Lines *lines, Cursor *cursor) {
-  char *source = LoadFileText(path);
-  size_t len = TextLength(source);
-  for (size_t i = 0; i < len; ++i) {
-    if (source[i] == '\n') new_line(text, lines, cursor);
-    else if (source[i] == '\r') insert_text(text, ' ', cursor, lines);
-    else if (source[i] == '\t') {
-      insert_text(text, ' ', cursor, lines);
-      insert_text(text, ' ', cursor, lines);
+    char *source = LoadFileText(path);
+    size_t len = TextLength(source);
+    for (size_t i = 0; i < len; ++i) {
+        if (source[i] == '\n') new_line(text, lines, cursor);
+        else if (source[i] == '\r') insert_text(text, ' ', cursor, lines);
+        else if (source[i] == '\t') {
+            insert_text(text, ' ', cursor, lines);
+            insert_text(text, ' ', cursor, lines);
+        }
+        else if (source[i] == '\0') break; //NOTE is this needed?
+        else insert_text(text, source[i], cursor, lines);
     }
-    else if (source[i] == '\0') break; //NOTE is this needed?
-    else insert_text(text, source[i], cursor, lines);
-  }
-  UnloadFileText(source);
+    UnloadFileText(source);
 }
 
 void _delete_recalculate_lines(Cursor *c, Lines *l) {
-  if (c->line_pos == 0) {
-    c->current_line--;
-    l->size--;
+    if (c->line_pos == 0) {
+        c->current_line--;
+        l->size--;
 
-    int diff = l->lines[c->current_line].end-l->lines[c->current_line].start-1;
-    c->line_pos = diff;
+        int diff = l->lines[c->current_line].end-l->lines[c->current_line].start-1;
+        c->line_pos = diff;
 
-    l->lines[c->current_line].end = l->lines[c->current_line+1].end-1;
-    for (size_t i = c->current_line+1; i < l->size; ++i) {
-      l->lines[i].start = l->lines[i+1].start-1;
-      l->lines[i].end = l->lines[i+1].end-1;
+        l->lines[c->current_line].end = l->lines[c->current_line+1].end-1;
+        for (size_t i = c->current_line+1; i < l->size; ++i) {
+            l->lines[i].start = l->lines[i+1].start-1;
+            l->lines[i].end = l->lines[i+1].end-1;
+        }
+    } 
+    else {
+        c->line_pos--;
+        l->lines[c->current_line].end--;
+        for (size_t i = c->current_line+1; i <= l->size; ++i) {
+            l->lines[i].start--;
+            l->lines[i].end--;
+        }
     }
-  } 
-  else {
-    c->line_pos--;
-    l->lines[c->current_line].end--;
-    for (size_t i = c->current_line+1; i <= l->size; ++i) {
-      l->lines[i].start--;
-      l->lines[i].end--;
-    }
-  }
 }
 
 char *_delete_text(Text *t, Cursor *c, Lines *l) {
-  
-  size_t repeat = 1;
-  const size_t selection_range = c->selection_end - c->selection_begin;
-  if (selection_range > 0) {
-    repeat = selection_range;
-    c->current_line = c->selection_line_end;
-    c->pos = c->selection_end;
-    c->line_pos = c->selection_end - l->lines[c->current_line].start;
-  }
+    size_t repeat = 1;
+    const size_t selection_range = c->selection_end - c->selection_begin;
+    if (selection_range > 0) {
+        repeat = selection_range;
+        c->current_line = c->selection_line_end;
+        c->pos = c->selection_end;
+        c->line_pos = c->selection_end - l->lines[c->current_line].start;
+    }
 
-  char* deleted = (char*)malloc(selection_range+1);
+    char* deleted = (char*)malloc(selection_range+1);
 
-  if ((t->capacity <= 0) || (c->pos <= 0)) {
+    if ((t->size <= 0) || (c->pos <= 0)) {
+        return deleted;
+    }
+
+    deleted[selection_range] = '\0';
+    if (selection_range > 0) {
+        strncpy(deleted, t->text + c->selection_begin, selection_range);
+    }
+
+    while (repeat > 0) {
+        repeat--;
+
+        _delete_recalculate_lines(c, l);
+
+        c->pos--;
+        memmove(t->text + c->pos, t->text + c->pos+1, t->size - c->pos+1);
+        t->text[t->size] = '\0';
+        t->size--;
+    }
+
+    selection_reset(c);
+
     return deleted;
-  }
-
-  deleted[selection_range] = '\0';
-  if (selection_range > 0) {
-    strncpy(deleted, t->text + c->selection_begin, selection_range);
-  }
-
-  while (repeat > 0) {
-    repeat--;
-
-    _delete_recalculate_lines(c, l);
-
-    c->pos--;
-    memmove(t->text+c->pos, t->text+c->pos+1, t->capacity-c->pos+1);
-    t->text[t->capacity] = '\0';
-    t->capacity--;
-  }
-
-  selection_reset(c);
-
-  return deleted;
 }
 
 void delete_text(Text *t, Cursor *c, Lines *l) {
+/// Deleting a selection: 
+// dumb way: put cursor in selection_end, delete char per char in a loop
+// not so dumb easy way: 
+//   if there one of two line selected just do the easy way
+//   if there are multiple lines selected we:
+//      - easy way on final line 
+//      - delete all betwen lines, update selection lines.lines etc 
+//      - easy way on first line 
+//      - memmove?
 
-  /// Deleting a selection: 
-  // dumb way: put cursor in selection_end, delete char per char in a loop
-  // not so dumb easy way: 
-  //   if there one of two line selected just do the easy way
-  //   if there are multiple lines selected we:
-  //      - easy way on final line 
-  //      - delete all betwen lines, update selection lines.lines etc 
-  //      - easy way on first line 
-  //      - memmove?
+    //lets go easy (dumb) way for now 
+    size_t repeat = 1;
+    const int selection_range = c->selection_end - c->selection_begin;
+    if (selection_range > 0) {
+        repeat = selection_range;
+        c->current_line = c->selection_line_end;
+        c->pos = c->selection_end;
+        c->line_pos = c->selection_end - l->lines[c->current_line].start;
+    }
 
-  //lets go easy (dumb) way for now 
-  size_t repeat = 1;
-  const int selection_range = c->selection_end - c->selection_begin;
-  if (selection_range > 0) {
-    repeat = selection_range;
-    c->current_line = c->selection_line_end;
-    c->pos = c->selection_end;
-    c->line_pos = c->selection_end - l->lines[c->current_line].start;
-  }
+    if ((t->size == 0) || (c->pos == 0)) {
+        return;
+    }
 
-  if ((t->capacity <= 0) || (c->pos <= 0)) {
-    return;
-  }
+    while (repeat > 0) { //TODO make some of this into one function to share betwen _delete (cut) and delete
+        repeat--;
 
-  while (repeat > 0) { //TODO make some of this into one function to share betwen _delete (cut) and delete
-    repeat--;
+        _delete_recalculate_lines(c, l);
 
-    _delete_recalculate_lines(c, l);
+        c->pos--;
+        memmove(t->text + c->pos, t->text + c->pos+1, t->size - c->pos+1);
+        t->text[t->size] = '\0';
+        t->size--;
+    }
 
-    c->pos--;
-    memmove(t->text+c->pos, t->text+c->pos+1, t->capacity-c->pos+1);
-    t->text[t->capacity] = '\0';
-    t->capacity--;
-  }
-
-  selection_reset(c);
+    selection_reset(c);
 }
 
 
@@ -163,81 +163,79 @@ void resize_lines(Lines *lines) {
     const size_t new_capacity = lines->capacity * 2;
     Line *new_lines = realloc(lines->lines, sizeof(Line) * new_capacity);
     if (new_lines == NULL) {
-        // Handle realloc failure
         fprintf(stderr, "Memory reallocation failed\n");
-        free(lines->lines); // free original allocation if realloc fails
+        free(lines->lines); 
         exit(1);
     }
-
     lines->lines = new_lines;
     lines->capacity = new_capacity;
 }
 
 void update_lines(Lines *lines, size_t line_num, size_t start, size_t end) { 
-  //line num is the position of the line we just inserted
-  if (lines->size >= lines->capacity) {
-      resize_lines(lines);
-  }
-  
-  lines->lines[line_num].start = start;
-  lines->lines[line_num].end = end;
+    //line num is the position of the line we just inserted
+    if (lines->size >= lines->capacity) {
+        resize_lines(lines);
+    }
 
-  //update rest of lines
-  const size_t right_amount = end - start + 1;
-  for (size_t i = line_num+1; i < lines->size; ++i) {
-    lines->lines[i].start += right_amount;
-    lines->lines[i].end += right_amount;
-  }
-  lines->size++;
+    lines->lines[line_num].start = start;
+    lines->lines[line_num].end = end;
+
+    //update rest of lines
+    const size_t right_amount = end - start + 1;
+    for (size_t i = line_num+1; i < lines->size; ++i) {
+        lines->lines[i].start += right_amount;
+        lines->lines[i].end += right_amount;
+    }
+    lines->size++;
 }
 
 void new_line(Text *text, Lines *lines, Cursor *c) {
-  insert_text(text, '\n', c, lines); 
+    insert_text(text, '\n', c, lines); 
 
-  const size_t start = c->pos;
-  const size_t end = lines->lines[c->current_line].end;
+    const size_t start = c->pos;
+    const size_t end = lines->lines[c->current_line].end;
 
-  lines->lines[c->current_line].end = c->pos;
+    lines->lines[c->current_line].end = c->pos;
 
-  c->line_pos = 0;
-  c->current_line++;
-  selection_reset(c);
-  update_lines(lines, c->current_line, start, end);
+    c->line_pos = 0;
+    c->current_line++;
+    selection_reset(c);
+    update_lines(lines, c->current_line, start, end);
 }
 
 
 bool paste_text(Text *text, Cursor *cursor, Lines *lines) { //TODO check for, \t, \r etc to insert them manualy
-  const char *source = GetClipboardText();
-  const size_t len = strlen(source);
-  if (len == 0) return false;
-  
-  for (size_t i = 0; i < len; ++i) {
-    if (source[i] == '\n') new_line(text, lines, cursor);
-    else if (source[i] == '\0') continue;
-    else insert_text(text, source[i], cursor, lines);
-  }
-  return true;
+    const char *source = GetClipboardText();
+    const size_t len = strlen(source);
+    if (len == 0) return false;
+
+    for (size_t i = 0; i < len; ++i) {
+        if (source[i] == '\n') new_line(text, lines, cursor);
+        else if (source[i] == '\0') continue;
+        else insert_text(text, source[i], cursor, lines);
+    }
+    return true;
 }
 
 void copy_text(Text *text, Cursor *cursor) { //TODO add copy line feature if nothing is selected
-  const size_t range = cursor->selection_end - cursor->selection_begin;
-  if (range <= 0) return;
-  char copied_text[range];
-  strncpy(copied_text, text->text + cursor->selection_begin, range);
-  copied_text[range] = '\0';
-  printf("copied_text: %s\n", copied_text);
-  SetClipboardText(copied_text);
-  cursor->selection_begin = cursor->pos;
-  cursor->selection_end = cursor->pos;
-  cursor->selection_line_begin = cursor->current_line;
-  cursor->selection_line_end = cursor->current_line;
+    const size_t range = cursor->selection_end - cursor->selection_begin;
+    if (range <= 0) return;
+    char copied_text[range];
+    strncpy(copied_text, text->text + cursor->selection_begin, range);
+    copied_text[range] = '\0';
+    printf("copied_text: %s\n", copied_text);
+    SetClipboardText(copied_text);
+    cursor->selection_begin = cursor->pos;
+    cursor->selection_end = cursor->pos;
+    cursor->selection_line_begin = cursor->current_line;
+    cursor->selection_line_end = cursor->current_line;
 }
 
 bool cut_text(Text *text, Cursor *cursor, Lines *lines) {
-  size_t selection_range = cursor->selection_end - cursor->selection_begin; //NOTE be careful when begin > end, selection_range cound end up being a big num
-  if (selection_range == 0) return false;
-  char *_d = _delete_text(text, cursor, lines);
-  SetClipboardText(_d);
-  free(_d);
-  return true;
+    size_t selection_range = cursor->selection_end - cursor->selection_begin; //NOTE be careful when begin > end, selection_range cound end up being a big num
+    if (selection_range == 0) return false;
+    char *_d = _delete_text(text, cursor, lines);
+    SetClipboardText(_d);
+    free(_d);
+    return true;
 }
