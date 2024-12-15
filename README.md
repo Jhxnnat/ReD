@@ -1,10 +1,15 @@
 # ReD is a simple retro looking (not yet) text editor made with raylib
 
-Red stants for Retro eDitor, maybe Raylib eDitor (just coincidence)
+Red stants for Retro eDitor, 
+Raylib eDitor and other coincidences are just coincidences.
+
+![foto](./imagen.png)
 
 ### Some sources: 
 
-- raylib [repo](https://github.com/raysan5/raylib)
-- [nerd fonts](https://www.nerdfonts.com/) are used
-- [crafting interpreters](https://craftinginterpreters.com/scanning-on-demand.html) book (used this to make text tokenization)
-- crt shader inspired by this [video](https://youtu.be/aWdySZ0BtJs)
+- of course this was inspired by: https://youtu.be/w_yXlnjeAy4
+- raylib: https://github.com/raysan5/raylib
+- nerd fonts are used: https://www.nerdfonts.com/ 
+- crafting interpreters book: (read this see how to make text tokenization) https://craftinginterpreters.com/scanning-on-demand.html
+- the crt shader inspired by this video: https://youtu.be/aWdySZ0BtJs
+- The Gruvbox pallete: https://github.com/morhetz/gruvbox

@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     }
     else if (argc >= 2) {
         const char *path = argv[1];
-        if (!DirectoryExists(path) || !FileExists(path)) {
+        if (!DirectoryExists(path) && !FileExists(path)) {
             puts("You may provide a valid file path of directory path");
             exit(69);
         }
@@ -69,6 +69,7 @@ int main(int argc, char **argv)
     }
     Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
 
+    explorer.lines_amount = (GH/font_measuring.y)-4;
     init_editor(&editor, &cursor, &lines, &text, font, GW, GH, start_write_mode);
     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
 
@@ -84,7 +85,7 @@ int main(int argc, char **argv)
         //Drawing
         //---------------------------------------------
         BeginDrawing();
-        ClearBackground(BLACK);
+        ClearBackground(RBLACK);
 
         if (editor.write_mode) {
             int key = GetCharPressed();
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
                     update_cam_offset_down(&cursor, &lines, editor.max_lines);
                     move_cam_right(&camera, cursor_display.x, font_measuring.y);
                     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
-                    if (cursor.line_pos == 0) {
+                    if (cursor.column == 0) {
                         move_cam_left(&camera, cursor_display.x, font_measuring.y);
                     }
                 } 
@@ -112,7 +113,7 @@ int main(int argc, char **argv)
                     update_cam_offset_up(&cursor, &lines);
                     move_cam_left(&camera, cursor_display.x, font_measuring.y);
                     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
-                    if (cursor.line_pos >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
+                    if (cursor.column >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
                         move_cam_right(&camera, cursor_display.x, font_measuring.y);
                     }
                 }
@@ -170,7 +171,7 @@ int main(int argc, char **argv)
                 delete_text(&text, &cursor, &lines);
                 update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring); 
                 move_cam_left(&camera, cursor_display.x, font_measuring.y); 
-                if (cursor.line_pos >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
+                if (cursor.column >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
                     move_cam_right(&camera, cursor_display.x, font_measuring.y);
                 }
             }
@@ -197,48 +198,58 @@ int main(int argc, char **argv)
 
             camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
             BeginMode2D(camera);
-
-            DrawRectangle(camera.target.x, camera.target.y, RTEXT_LEFT - 3, GH, BLACK);
-            // DrawRectangle(camera.target.x + RTEXT_LEFT-6, camera.target.y, 3, GH, ORANGE);
-            // DrawRectangle(camera.target.x - 3, camera.target.y, 3, GH, ORANGE);
-            // DrawRectangle(camera.target.x + GW-3, camera.target.y, 3, GH, ORANGE);
-
             BeginShaderMode(crt);
 
-            draw_text_tokenized(text.text, font, (Vector2){RTEXT_LEFT, RTEXT_TOP}, (float)font.baseSize, RFONT_SPACING );
-            draw_line_numbers(camera, font, font_measuring, lines);
-            DrawText("|", cursor_display.x, cursor_display.y, font.baseSize, RED);
+            draw_text_tokenized_optimized(
+                text.text, lines,
+                font, font_measuring,
+                (Vector2){RTEXT_LEFT, RTEXT_TOP},
+                (float)font.baseSize,
+                RFONT_SPACING
+            );
+
+            DrawText("|", cursor_display.x, cursor_display.y, font.baseSize, RRED);
             draw_selection(cursor, lines, text, font, font_measuring);
 
-            EndShaderMode();
+            const char *status_text = TextFormat("%zu", cursor.column);
+            Vector2 status_measure = MeasureTextEx(font, status_text, font.baseSize, RFONT_SPACING);
+            Vector2 status_pos = {
+                camera.target.x + GW - status_measure.x - 10, 
+                camera.target.y + GH - font_measuring.y - 10
+            };
+            DrawTextEx(font, status_text, status_pos, font.baseSize, RFONT_SPACING, RGRAY);
 
+            DrawRectangle(camera.target.x, camera.target.y, RTEXT_LEFT - 3, GH, RBLACK);
+            draw_line_numbers(camera, font, font_measuring, lines);
+
+            EndShaderMode();
             EndMode2D();
         } 
         else {
             explorer_input(&explorer);
-                if (IsKeyReleased(KEY_ENTER) && explorer.cursor == -1) {
-                    explorer_load_prevpath(&explorer);
-                }
-                else if (IsKeyReleased(KEY_ENTER) && explorer.cursor > -1) {
-                    char *selected_path = explorer.filepath_list.paths[explorer.cursor];
-                    if (IsPathFile(selected_path) && FileExists(selected_path)) {
-                        memset(text.text, '\0', text.size); 
-                        lines.offset = 0;
-                        lines.size = 1;
-                        init_cursor(&cursor); // safe, no malloc stuff
-                        init_camera(&camera); // ... //
-                        init_editor(&editor, &cursor, &lines, &text, font, GW, GH, true);
-                        cursor_display.x = 0; //NOTE cursor_display should be part of editor
-                        cursor_display.y = 0;
+            if (IsKeyReleased(KEY_ENTER) && explorer.cursor == -1) {
+                explorer_load_prevpath(&explorer);
+            }
+            else if (IsKeyReleased(KEY_ENTER) && explorer.cursor > -1) {
+                char *selected_path = explorer.filepath_list.paths[explorer.cursor];
+                if (IsPathFile(selected_path) && FileExists(selected_path)) {
+                    memset(text.text, '\0', text.size); 
+                    lines.offset = 0;
+                    lines.size = 1;
+                    init_cursor(&cursor); // safe, no malloc stuff
+                    init_camera(&camera); // ... //
+                    init_editor(&editor, &cursor, &lines, &text, font, GW, GH, true);
+                    cursor_display.x = 0; //NOTE cursor_display should be part of editor
+                    cursor_display.y = 0;
 
-                        insert_text_from_file(selected_path, &text, &lines, &cursor);
-                        cursor_move_start(&cursor);
-                        update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
-                    } 
-                    else if (DirectoryExists(selected_path)) {
-                        explorer_load_path(&explorer, selected_path);
-                    }
+                    insert_text_from_file(selected_path, &text, &lines, &cursor);
+                    cursor_move_start(&cursor);
+                    update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+                } 
+                else if (DirectoryExists(selected_path)) {
+                    explorer_load_path(&explorer, selected_path);
                 }
+            }
 
             BeginShaderMode(crt);
             explorer_draw(&explorer, font, font_measuring);
@@ -248,12 +259,12 @@ int main(int argc, char **argv)
         // DrawRectangle(0, GH - 40, GW, 40, BLUE);
         // DrawText(TextFormat(
         //   "%d--col:%d,row:%d--[%d, %d]--select: %d,%d--off:%d", 
-        //   cursor.pos, cursor.line_pos, cursor.current_line,
+        //   cursor.pos, cursor.column, cursor.current_line,
         //   lines.lines[cursor.current_line].start, lines.lines[cursor.current_line].end,
         //   cursor.selection_begin, cursor.selection_end,
         //   lines.offset
         // ), 140, GH - 30, 20, BLACK);
-        DrawText(TextFormat("%d", GetFPS()), 20, GH-30, 20, SKYBLUE);
+        // DrawText(TextFormat("%d - offset: %zu", GetFPS(), lines.offset), 20, GH-30, 20, RBLUE);
 
         EndDrawing();
     }

@@ -10,12 +10,21 @@
 #define GH 600
 #define RTEXT_LEFT 72
 #define RTEXT_TOP 22
-#define RTEXT_LEFT_LINES 10
+// #define RTEXT_LEFT_LINES 10
 #define RFONT_SPACING 2
 #define RFONT_SIZE 24
-#define MAX_LINES 11
+// #define MAX_LINES 11
 
-//TODO define colors
+#define RBLACK (Color){ 50, 48, 47, 255 }
+#define RGRAY (Color){ 146, 131, 116, 255 }
+#define RWHITE (Color){ 242, 229, 188, 255 }
+#define RRED (Color){ 204, 36, 29, 255 }
+#define RGREEN (Color){ 152, 151, 26, 255 }
+#define RYELLOW (Color){ 215, 153, 33, 255 }
+#define RBLUE (Color){ 69, 133, 136, 255 }
+#define RPURPLE (Color){ 177, 98, 134, 255 }
+#define RAQUA (Color){ 104, 157, 106, 255 }
+#define RORANGE (Color){ 214, 93, 14, 255 }
 
 typedef struct {
     size_t capacity;
@@ -32,12 +41,14 @@ typedef struct {
     size_t size;
     size_t capacity;
     Line   *lines;
-    size_t offset; //WARNING this can be vert_offset on Editor
+
+    //draw purpose
+    size_t offset;
 } Lines;
 
 typedef struct {
     size_t pos; 
-    size_t line_pos; //TODO change this to: column
+    size_t column;
     size_t current_line;
     bool is_selecting;
     size_t selection_begin; 

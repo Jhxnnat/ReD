@@ -50,13 +50,48 @@ void draw_text_tokenized(const char *text, Font font, Vector2 position, float fo
     }
 }
 
+void draw_text_tokenized_optimized(const char *text, Lines lines, 
+                                   Font font, Vector2 font_measuring, Vector2 position, float fontSize, float spacing) {
+    Scanner scanner;
+    scanner.cursor = 0;
+    scanner.line = 1;
+    
+    size_t text_from = lines.lines[lines.offset].start;
+    scanner.start = text+text_from;
+    scanner.current = text+text_from;
+
+    int max_lines = (GH/font_measuring.y) - 3;
+
+    int line = -1;
+    float textOffsetX = 0.0f;
+    for (;;) {
+        Token token = scan_token(&scanner);
+        if ((int)token.line != line) {
+            line = token.line;
+            textOffsetX = 0.0f;
+        }
+        Vector2 new_position = {
+            position.x,
+            position.y + (lines.offset * font_measuring.y) + (lines.offset * spacing)
+        };
+        draw_text_line_token(token, &textOffsetX, font, new_position, fontSize, spacing);
+        if (token.type == TOKEN_EOL || line >= max_lines) break;
+    }
+}
+
 void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines lines){
-    //NOTE consider draw a part of the lines to optimize 
-    for (size_t i = 1; i < lines.size+1; ++i) {
+    size_t max_lines = (GH/font_measuring.y) - 3 + lines.offset; //NOTE yes, arbitrary num '3'
+    if (max_lines > lines.size+1) { max_lines = lines.size+1; } 
+    size_t top = lines.offset;
+
+    for (size_t i = top; i < max_lines; ++i) {
         const char *t = TextFormat("%d", i);
         Vector2 _meassure_t = MeasureTextEx(font, t, font.baseSize, RFONT_SPACING);
-        Vector2 pos = { camera.target.x + RTEXT_LEFT-(_meassure_t.x)-10, RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1)) };
-        DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, GRAY);
+        Vector2 pos = {
+            camera.target.x + RTEXT_LEFT-(_meassure_t.x)-10,
+            RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1))
+        };
+        DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, RGRAY);
     }
 }
 

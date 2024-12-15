@@ -18,7 +18,7 @@ void free_text(Text *t) {
 
 void init_cursor(Cursor *c) {
     c->pos = 0;
-    c->line_pos = 0;
+    c->column = 0;
     c->current_line = 0;
     c->is_selecting = false;
     c->selection_begin = 0;
@@ -56,7 +56,7 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font 
 
     float font_height = font_measuring.y;
     editor->max_lines = window_h / font_height;
-    editor->max_lines -= 4;
+    editor->max_lines -= 4; //some arbitrary offset 
     editor->hori_offset = 0;
     editor->cursor_display.x = 0;
     editor->cursor_display.y = 0;

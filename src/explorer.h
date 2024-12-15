@@ -5,17 +5,18 @@
 #include "../raylib/include/raylib.h"
 
 typedef struct {
-    char *path;
+    char path[255];
     size_t path_capacity;
 
-    char *working_directory;
-    char *current_file;
+    char working_directory[255];
+    char current_file[255];
     FilePathList filepath_list;
     bool should_free;
 
     // graphical
     int cursor;
     int y_offset;
+    int lines_amount;
 } Explorer;
 
 void explorer_init(Explorer *e);

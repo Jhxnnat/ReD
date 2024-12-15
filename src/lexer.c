@@ -1,4 +1,5 @@
 #include <string.h>
+#include "ds.h"
 #include "lexer.h"
 
 const char *token_name(TokenType kind){
@@ -18,14 +19,14 @@ const char *token_name(TokenType kind){
 
 Color token_color(TokenType kind){
     switch (kind) {
-        case TOKEN_KEYWORD: return ORANGE;
-        case TOKEN_STRING: return LIME;
-        case TOKEN_COMMENT: return GRAY;
-        case TOKEN_OTHER: return SKYBLUE;
-        case TOKEN_IDENTIFIER: return WHITE;
-        case TOKEN_PREPROC: return RED;
-        case TOKEN_NUMBER: return PURPLE;
-        default: return WHITE;
+        case TOKEN_KEYWORD: return RORANGE;
+        case TOKEN_STRING: return RGREEN;
+        case TOKEN_COMMENT: return RGRAY;
+        case TOKEN_OTHER: return RBLUE;
+        case TOKEN_IDENTIFIER: return RWHITE;
+        case TOKEN_PREPROC: return RRED;
+        case TOKEN_NUMBER: return RPURPLE;
+        default: return RWHITE;
     }
 }
 
@@ -91,7 +92,6 @@ Token make_preproc(Scanner *scanner) {
 
 Token make_string(Scanner *scanner) { 
     while (peek(scanner) != '"' && !is_at_end(scanner->current)) {
-        // if (peek(scanner) == '\n') scanner->line++; //TODO this is causing bugs with breakline token
         if (peek(scanner) == '\n') {
             return make_token(scanner, TOKEN_STRING);
         }

@@ -1,11 +1,10 @@
 # get track of stuff to feel better
 
 ## Editor itself
-- [x] start key holding
+- [ ] soporte para el idioma español
 - [x] backspace & enter keyhold
 - [x] arrow navigation
     - [x] home-end navigation
-    - [ ] C-arrows nav
 - [x] tab indent
 - [x] supr key
 - [x] load file
@@ -36,6 +35,9 @@
     - [no] works perfect
 - [x] draw just a part of the text? 
 - [ ] draw optimization
+    - [x] line num
+    - [x] text lines
+    - [ ] horizontally?
 - [ ] write and test more and more and more and more? (optional)
 
 - [ ] resizable window
@@ -45,7 +47,8 @@
     - [ ] highlighting single quotes strings
 - [x] file navigation?
     - [ ] there are some path issues
-- [ ] crt-shader
+- [x] crt-shader
+    - [ ] rounded corners?
 
 ## do not want to implement
 - [ ] themes
@@ -57,6 +60,6 @@
 - [ ] new line keeps indentation
 
 ## this is not going to happen
-- [ ] LSP error lens like stuff
+- [ ] LSP & error lens like stuff
 - [ ] api (scripting)
 - [ ] code completition
