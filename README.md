@@ -3,7 +3,7 @@
 Red stants for Retro eDitor, 
 Raylib eDitor and other coincidences are just coincidences.
 
-![foto](./imagen.png)
+![foto](./imagen2.png)
 
 ### Some sources: 
 
