@@ -181,7 +181,7 @@ void new_line(Text *text, Lines *lines, Cursor *c) {
     if (lines->size >= lines->capacity) {
         resize_lines(lines);
     }
-
+    
     for (size_t i = lines->size-1; i > c->current_line; --i) {
         lines->lines[i].start = lines->lines[i-1].start;
         lines->lines[i].end = lines->lines[i-1].end;

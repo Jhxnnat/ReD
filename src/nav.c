@@ -108,10 +108,9 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
     size_t current_line = cursor->current_line;
     size_t next_line_len = lines->lines[current_line].end - lines->lines[current_line].start;
 
-    if (cursor->column > next_line_len) {
-        int _off = (next_line_len < 1) ? 0 : 1;
-        cursor->column = next_line_len - _off;
-        cursor->pos = lines->lines[current_line].end - _off;
+    if (cursor->column >= next_line_len) {
+        cursor->column = next_line_len - 1;
+        cursor->pos = lines->lines[current_line].end-1;
     }
     else {
         cursor->pos = lines->lines[current_line].start + cursor->column;
@@ -122,12 +121,8 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
         return;
     }
 
-    if (dir > 0) {
-        __selection_move_down(cursor, prev_pos);
-    }
-    else {
-        __selection_move_up(cursor, prev_pos);
-    }
+    if (dir > 0) { __selection_move_down(cursor, prev_pos); }
+    else {__selection_move_up(cursor, prev_pos); }
 }
 
 void cursor_move_sol(Cursor *cursor, Lines *lines) {

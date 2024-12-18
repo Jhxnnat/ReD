@@ -2,6 +2,9 @@
 
 #include "ds.h"
 
+float ScreenW = 800;
+float ScreenH = 600;
+
 void init_text(Text *t, size_t size) {
     t->text = malloc(size * sizeof(char));
     t->text[size] = '\0';

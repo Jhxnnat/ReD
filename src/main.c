@@ -54,38 +54,35 @@ int main(int argc, char **argv)
         }
     }
 
-    SetConfigFlags(FLAG_WINDOW_UNDECORATED);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(GW, GH, NAME);
+    SetWindowMinSize(400, 300);
     SetExitKey(0);
 
-    Shader crt = LoadShader(0, "./assets/crt.glsl");
-    int sh_time_loc = GetShaderLocation(crt, "seconds");
-    float sh_time = 0.0f;
-    SetShaderValue(crt, sh_time_loc, &sh_time, SHADER_UNIFORM_FLOAT);
-  
-    Font font = LoadFontEx("./assets/big-blue-term.ttf", RFONT_SIZE, NULL, 0);
+    Shader crt = LoadShader(0, "./assets/shader/crt.glsl");
+    float sh_rh = GetShaderLocation(crt, "renderHeight");
+    SetShaderValue(crt, sh_rh, &ScreenH, SHADER_UNIFORM_FLOAT);
+
+    Font font = LoadFontEx("./assets/fonts/BigBlueTerminal/BigBlueTermPlusNerdFontMono-Regular.ttf", RFONT_SIZE, NULL, 250);
     if (!IsFontValid(font)) {
         font = GetFontDefault();
     }
+
     Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
 
     explorer.lines_amount = (GH/font_measuring.y)-4;
     init_editor(&editor, &cursor, &lines, &text, font, GW, GH, start_write_mode);
     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
 
-    while (!WindowShouldClose()) {
+    RenderTexture2D tex = LoadRenderTexture(GW, GH);
 
-        sh_time += GetFrameTime();
-        SetShaderValue(crt, sh_time_loc, &sh_time, SHADER_UNIFORM_FLOAT);
-    
+    while (!WindowShouldClose()) {
         if (IsKeyPressed(KEY_ESCAPE)) {
             editor.write_mode = !editor.write_mode;
         }
 
-        //Drawing
-        //---------------------------------------------
         BeginDrawing();
-        ClearBackground(RBLACK);
+        ClearBackground(BLACK);
 
         if (editor.write_mode) {
             int key = GetCharPressed();
@@ -197,8 +194,9 @@ int main(int argc, char **argv)
             if (IsKeyReleased(KEY_LEFT_SHIFT)) cursor.is_selecting = false;
 
             camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
+            BeginTextureMode(tex);
+            DrawRectangle(0, 0, GW, GH, RBLACK);
             BeginMode2D(camera);
-            BeginShaderMode(crt);
 
             draw_text_tokenized_optimized(
                 text.text, lines,
@@ -208,10 +206,13 @@ int main(int argc, char **argv)
                 RFONT_SPACING
             );
 
-            DrawText("|", cursor_display.x, cursor_display.y, font.baseSize, RRED);
+            DrawRectangle(cursor_display.x, cursor_display.y, font_measuring.x, font_measuring.y, RWHITE);
+            const char cu = text.text[cursor.pos];
+            DrawTextEx(font, TextFormat("%c", cu), cursor_display, font.baseSize, RFONT_SPACING, RBLACK);
+
             draw_selection(cursor, lines, text, font, font_measuring);
 
-            const char *status_text = TextFormat("%zu", cursor.column);
+            const char *status_text = TextFormat("%ix%i, %zu", (int)ScreenW, (int)ScreenH, cursor.column);
             Vector2 status_measure = MeasureTextEx(font, status_text, font.baseSize, RFONT_SPACING);
             Vector2 status_pos = {
                 camera.target.x + GW - status_measure.x - 10, 
@@ -222,8 +223,12 @@ int main(int argc, char **argv)
             DrawRectangle(camera.target.x, camera.target.y, RTEXT_LEFT - 3, GH, RBLACK);
             draw_line_numbers(camera, font, font_measuring, lines);
 
-            EndShaderMode();
             EndMode2D();
+            EndTextureMode();
+
+            BeginShaderMode(crt);
+                DrawTextureRec(tex.texture, (Rectangle){0,0,tex.texture.width,-tex.texture.height}, (Vector2){0,0}, WHITE);
+            EndShaderMode();
         } 
         else {
             explorer_input(&explorer);
@@ -251,10 +256,15 @@ int main(int argc, char **argv)
                 }
             }
 
+            BeginTextureMode(tex);
+                DrawRectangle(0, 0, GW, GH, RBLACK);
+                explorer_draw(&explorer, font, font_measuring);
+            EndTextureMode();
             BeginShaderMode(crt);
-            explorer_draw(&explorer, font, font_measuring);
+                DrawTextureRec(tex.texture, (Rectangle){0,0,tex.texture.width,-tex.texture.height}, (Vector2){0,0}, WHITE);
             EndShaderMode();
         }
+
     
         // DrawRectangle(0, GH - 40, GW, 40, BLUE);
         // DrawText(TextFormat(
@@ -267,7 +277,19 @@ int main(int argc, char **argv)
         // DrawText(TextFormat("%d - offset: %zu", GetFPS(), lines.offset), 20, GH-30, 20, RBLUE);
 
         EndDrawing();
+
+        if (IsWindowResized()) {
+            ScreenW = GetScreenWidth();
+            ScreenH = GetScreenHeight();
+            UnloadRenderTexture(tex);
+            tex = LoadRenderTexture(GW, GH);
+
+            SetShaderValue(crt, sh_rh, &ScreenH, SHADER_UNIFORM_FLOAT);
+        }
+
     }
+
+    UnloadRenderTexture(tex);
   
     UnloadShader(crt);
     UnloadFont(font);

@@ -19,14 +19,14 @@ const char *token_name(TokenType kind){
 
 Color token_color(TokenType kind){
     switch (kind) {
-        case TOKEN_KEYWORD: return RORANGE;
+        case TOKEN_KEYWORD: return RYELLOW;
         case TOKEN_STRING: return RGREEN;
         case TOKEN_COMMENT: return RGRAY;
         case TOKEN_OTHER: return RBLUE;
         case TOKEN_IDENTIFIER: return RWHITE;
         case TOKEN_PREPROC: return RRED;
         case TOKEN_NUMBER: return RPURPLE;
-        default: return RWHITE;
+        default: return RORANGE;
     }
 }
 
@@ -80,12 +80,12 @@ bool skip_whitespace(Scanner *scanner) {
 
 Token make_preproc(Scanner *scanner) {
     while (peek(scanner) != '\n' && peek_next(scanner) != '\n' && !is_at_end(scanner->current)) {
-        // if (peek(scanner) == '\\') scanner->line++;
+        if (peek(scanner) == '\n') {
+            return make_token(scanner, TOKEN_PREPROC);
+        }
         advance(scanner);
     }
-
     if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_PREPROC);
-
     advance(scanner);
     return make_token(scanner, TOKEN_PREPROC);
 }
@@ -97,7 +97,7 @@ Token make_string(Scanner *scanner) {
         }
         advance(scanner);
     }
-    if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_OTHER);
+    if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_STRING);
     advance(scanner);
     return make_token(scanner, TOKEN_STRING);
 }
@@ -161,6 +161,7 @@ TokenType identifier_type(Scanner *scanner) {
                 switch(scanner->start[1]) {
                     case 'h': return check_keyword(scanner, "char");
                     case 'a': return check_keyword(scanner, "case");
+                    case 'o': return check_keyword(scanner, "const");
                 }
             }
             break;

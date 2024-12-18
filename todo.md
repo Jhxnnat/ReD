@@ -1,7 +1,7 @@
 # get track of stuff to feel better
 
 ## Editor itself
-- [ ] soporte para el idioma español
+- [not going great] soporte para el idioma español
 - [x] backspace & enter keyhold
 - [x] arrow navigation
     - [x] home-end navigation
@@ -48,7 +48,8 @@
 - [x] file navigation?
     - [ ] there are some path issues
 - [x] crt-shader
-    - [ ] rounded corners?
+    - [ ] rounded corners
+- [ ] undo/redo
 
 ## do not want to implement
 - [ ] themes

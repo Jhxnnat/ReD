@@ -6,16 +6,16 @@
 #include "../raylib/include/raylib.h"
 
 #define NAME "Retro eDitor - [0.0.1]"
-#define GW 800
-#define GH 600
+#define GW ScreenW
+#define GH ScreenH
 #define RTEXT_LEFT 72
 #define RTEXT_TOP 22
 // #define RTEXT_LEFT_LINES 10
 #define RFONT_SPACING 2
-#define RFONT_SIZE 24
+#define RFONT_SIZE 26
 // #define MAX_LINES 11
 
-#define RBLACK (Color){ 50, 48, 47, 255 }
+#define RBLACK (Color){ 29, 32, 33, 255 }
 #define RGRAY (Color){ 146, 131, 116, 255 }
 #define RWHITE (Color){ 242, 229, 188, 255 }
 #define RRED (Color){ 204, 36, 29, 255 }
@@ -25,6 +25,9 @@
 #define RPURPLE (Color){ 177, 98, 134, 255 }
 #define RAQUA (Color){ 104, 157, 106, 255 }
 #define RORANGE (Color){ 214, 93, 14, 255 }
+
+extern float ScreenW;
+extern float ScreenH;
 
 typedef struct {
     size_t capacity;
