@@ -108,7 +108,7 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
     size_t current_line = cursor->current_line;
     size_t next_line_len = lines->lines[current_line].end - lines->lines[current_line].start;
 
-    if (cursor->column >= next_line_len) {
+    if (cursor->column > next_line_len) {
         cursor->column = next_line_len - 1;
         cursor->pos = lines->lines[current_line].end-1;
     }

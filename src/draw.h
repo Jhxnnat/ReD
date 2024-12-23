@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include "../raylib//include/raylib.h"
+#include "../raylib/include/raylib.h"
 #include "ds.h"
 
 void draw_text_tokenized(const char *text, Font font, Vector2 position, float fontSize, float spacing);

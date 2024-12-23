@@ -9,6 +9,13 @@
 #include "draw.h"
 #include "explorer.h"
 
+//undo & redo stacks with some max size
+// when to push to undo stack?
+// -> on (before) backspace
+// -> on inserting {} [] () 
+// -> on inserting two \n and writting?
+//
+
 int main(int argc, char **argv) 
 {
     Text text;
@@ -58,6 +65,7 @@ int main(int argc, char **argv)
     InitWindow(GW, GH, NAME);
     SetWindowMinSize(400, 300);
     SetExitKey(0);
+    SetTargetFPS(60);
 
     Shader crt = LoadShader(0, "./assets/shader/crt.glsl");
     float sh_rh = GetShaderLocation(crt, "renderHeight");
@@ -73,6 +81,7 @@ int main(int argc, char **argv)
     explorer.lines_amount = (GH/font_measuring.y)-4;
     init_editor(&editor, &cursor, &lines, &text, font, GW, GH, start_write_mode);
     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+    push_undo(&editor, cursor, lines, text.text);
 
     RenderTexture2D tex = LoadRenderTexture(GW, GH);
 
@@ -162,6 +171,8 @@ int main(int argc, char **argv)
                 update_cam_offset_down(&cursor, &lines, editor.max_lines);
                 update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
                 move_cam_left(&camera, cursor_display.x, font_measuring.y);
+
+                push_undo(&editor, cursor, lines, text.text);
             }
 
             if (IsKeyPressed(KEY_BACKSPACE)) {
@@ -192,6 +203,63 @@ int main(int argc, char **argv)
                 }
             }
             if (IsKeyReleased(KEY_LEFT_SHIFT)) cursor.is_selecting = false;
+
+            if (IsKeyDown(KEY_LEFT_CONTROL)) {
+                if (IsKeyPressed(KEY_Z) && editor.stack_top > 0) {
+                    push_redo(&editor, cursor, lines, text.text);
+                    Change undo = editor.stack[--editor.stack_top];
+                    printf("[undo]::\n%s\n", undo.text);
+
+                    memset(text.text, '\0', text.size); 
+                    lines.offset = 0;
+                    lines.size = 1;
+                    text.size = 0;
+                    init_cursor(&cursor); // safe, no malloc stuff
+                    init_camera(&camera); // ... //
+                    
+                    for (size_t i = 0; i < strlen(undo.text); ++i) {
+                        if (undo.text[i] == '\n') new_line(&text, &lines, &cursor);
+                        else insert_text(&text, undo.text[i], &cursor, &lines);
+                    }
+
+                    cursor.pos = undo.cursor_pos;
+                    cursor.column = undo.col;
+                    cursor.current_line = undo.line;
+                    //hori_off...
+                    lines.offset = undo.vert_off;
+
+                    update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+
+                    free(undo.text);
+                } 
+                else if (IsKeyPressed(KEY_Y) && editor.stack_top_redo > 0) {
+                    push_undo(&editor, cursor, lines, text.text);
+                    Change redo = editor.stack_r[--editor.stack_top_redo];
+                    printf("[redo]:: %s\n", redo.text);
+
+                    //TODO make a reset function of something similar
+                    memset(text.text, '\0', text.size); 
+                    lines.offset = 0;
+                    lines.size = 1;
+                    text.size = 0;
+                    init_cursor(&cursor); // safe, no malloc stuff
+                    init_camera(&camera); // ... //
+
+                    for (size_t i = 0; i < strlen(redo.text); ++i) {
+                        if (redo.text[i] == '\n') new_line(&text, &lines, &cursor);
+                        else insert_text(&text, redo.text[i], &cursor, &lines);
+                    }
+
+                    cursor.pos = redo.cursor_pos;
+                    cursor.column = redo.col;
+                    cursor.current_line = redo.line;
+                    lines.offset = redo.vert_off;
+
+                    update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+                    free(redo.text);
+                }
+                
+            }
 
             camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
             BeginTextureMode(tex);
@@ -241,11 +309,10 @@ int main(int argc, char **argv)
                     memset(text.text, '\0', text.size); 
                     lines.offset = 0;
                     lines.size = 1;
+                    text.size = 0;
                     init_cursor(&cursor); // safe, no malloc stuff
                     init_camera(&camera); // ... //
                     init_editor(&editor, &cursor, &lines, &text, font, GW, GH, true);
-                    cursor_display.x = 0; //NOTE cursor_display should be part of editor
-                    cursor_display.y = 0;
 
                     insert_text_from_file(selected_path, &text, &lines, &cursor);
                     cursor_move_start(&cursor);
@@ -274,7 +341,7 @@ int main(int argc, char **argv)
         //   cursor.selection_begin, cursor.selection_end,
         //   lines.offset
         // ), 140, GH - 30, 20, BLACK);
-        // DrawText(TextFormat("%d - offset: %zu", GetFPS(), lines.offset), 20, GH-30, 20, RBLUE);
+        DrawText(TextFormat("%d - offset: %zu", GetFPS(), lines.offset), 20, GH-30, 20, RBLUE);
 
         EndDrawing();
 
@@ -294,6 +361,7 @@ int main(int argc, char **argv)
     UnloadShader(crt);
     UnloadFont(font);
     CloseWindow();
+    free_undo(&editor);
     explorer_free(&explorer);
     free_text(&text);
     free_lines(&lines);
