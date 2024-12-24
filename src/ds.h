@@ -101,5 +101,7 @@ void push_redo(Editor *editor, Cursor c, Lines l, const char *text);
 void free_undo(Editor *editor);
 void free_redo(Editor *editor);
 
+// void save_file(const char *file_path); //NOTE dont know where to put this
+
 #endif // !DS_H
 

@@ -40,7 +40,9 @@
     - [ ] horizontally?
 - [ ] write and test more and more and more and more? (optional)
 
-- [ ] resizable window
+- [x] resizable window
+
+- [ ] Error management is needed in some void functions
 
 ## funny
 - [x] simple syntax highlighting (C)
@@ -48,8 +50,9 @@
 - [x] file navigation?
     - [ ] there are some path issues
 - [x] crt-shader
-    - [ ] rounded corners
-- [ ] undo/redo
+    - [x] rounded corners
+- [x] undo/redo
+    - [ ] real usable undo/redo 
 
 ## do not want to implement
 - [ ] themes

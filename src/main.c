@@ -205,7 +205,10 @@ int main(int argc, char **argv)
             if (IsKeyReleased(KEY_LEFT_SHIFT)) cursor.is_selecting = false;
 
             if (IsKeyDown(KEY_LEFT_CONTROL)) {
-                if (IsKeyPressed(KEY_Z) && editor.stack_top > 0) {
+                if (IsKeyPressed(KEY_S) && strlen(explorer.current_file) > 0) {
+                    SaveFileText(explorer.current_file, text.text);
+                }
+                else if (IsKeyPressed(KEY_Z) && editor.stack_top > 0) {
                     push_redo(&editor, cursor, lines, text.text);
                     Change undo = editor.stack[--editor.stack_top];
                     printf("[undo]::\n%s\n", undo.text);
@@ -280,7 +283,7 @@ int main(int argc, char **argv)
 
             draw_selection(cursor, lines, text, font, font_measuring);
 
-            const char *status_text = TextFormat("%ix%i, %zu", (int)ScreenW, (int)ScreenH, cursor.column);
+            const char *status_text = TextFormat("%s | %ix%i, %zu", explorer.current_file, (int)ScreenW, (int)ScreenH, cursor.column);
             Vector2 status_measure = MeasureTextEx(font, status_text, font.baseSize, RFONT_SPACING);
             Vector2 status_pos = {
                 camera.target.x + GW - status_measure.x - 10, 
@@ -306,6 +309,8 @@ int main(int argc, char **argv)
             else if (IsKeyReleased(KEY_ENTER) && explorer.cursor > -1) {
                 char *selected_path = explorer.filepath_list.paths[explorer.cursor];
                 if (IsPathFile(selected_path) && FileExists(selected_path)) {
+
+                    strcpy(explorer.current_file, selected_path);
                     memset(text.text, '\0', text.size); 
                     lines.offset = 0;
                     lines.size = 1;
