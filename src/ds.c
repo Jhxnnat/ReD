@@ -126,3 +126,4 @@ void free_redo(Editor *editor) {
         free(editor->stack[i].text);
     }
 }
+

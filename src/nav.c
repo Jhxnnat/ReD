@@ -140,8 +140,11 @@ void cursor_move_eol(Cursor *cursor, Lines *lines) {
         if (lines->size <= 1 || cursor->current_line == lines->size-1) {
             _off = 0;
         }
-        cursor->pos = lines->lines[cursor->current_line].end - _off;
         cursor->column = _len;
+        cursor->pos = lines->lines[cursor->current_line].end - _off;
+    } else {
+        cursor->column = 0;
+        cursor->pos = lines->lines[cursor->current_line].end;
     }
 
     if (!cursor->is_selecting) selection_reset(cursor);

@@ -9,19 +9,25 @@
 #include "draw.h"
 #include "explorer.h"
 
-//undo & redo stacks with some max size
-// when to push to undo stack?
-// -> on (before) backspace
-// -> on inserting {} [] () 
-// -> on inserting two \n and writting?
-//
+void editor_reset(Text *text, Cursor *cursor, Lines *lines, Camera2D *camera) {
+    memset(text->text, '\0', text->size); 
+    text->size = 0;
+    init_cursor(cursor); // no malloc stuff
+    init_camera(camera); // ... //
+    for (size_t n = 0; n < lines->size; ++n) {
+        lines->lines[n].start = 0;
+        lines->lines[n].end = 0;
+    }
+    lines->size = 1;
+    lines->offset = 0;
+}
 
 int main(int argc, char **argv) 
 {
     Text text;
-    init_text(&text, 8);
+    init_text(&text, TEXT_INIT_SIZE);
     Lines lines;
-    init_lines(&lines, 10);
+    init_lines(&lines, LINES_INIT_SIZE);
     Cursor cursor;
     init_cursor(&cursor);
 
@@ -159,7 +165,7 @@ int main(int argc, char **argv)
                 }
                 else if (IsKeyPressed(KEY_S)) {
                     cursor_move_end(&cursor, &lines);
-                    cursor_move_eol(&cursor, &lines);
+                    // cursor_move_eol(&cursor, &lines);
                     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
                     move_cam_end(&camera, &lines, editor.max_lines);
                     move_cam_right(&camera, cursor_display.x, font_measuring.y);
@@ -213,12 +219,7 @@ int main(int argc, char **argv)
                     Change undo = editor.stack[--editor.stack_top];
                     printf("[undo]::\n%s\n", undo.text);
 
-                    memset(text.text, '\0', text.size); 
-                    lines.offset = 0;
-                    lines.size = 1;
-                    text.size = 0;
-                    init_cursor(&cursor); // safe, no malloc stuff
-                    init_camera(&camera); // ... //
+                    editor_reset(&text, &cursor, &lines, &camera);
                     
                     for (size_t i = 0; i < strlen(undo.text); ++i) {
                         if (undo.text[i] == '\n') new_line(&text, &lines, &cursor);
@@ -240,13 +241,7 @@ int main(int argc, char **argv)
                     Change redo = editor.stack_r[--editor.stack_top_redo];
                     printf("[redo]:: %s\n", redo.text);
 
-                    //TODO make a reset function of something similar
-                    memset(text.text, '\0', text.size); 
-                    lines.offset = 0;
-                    lines.size = 1;
-                    text.size = 0;
-                    init_cursor(&cursor); // safe, no malloc stuff
-                    init_camera(&camera); // ... //
+                    editor_reset(&text, &cursor, &lines, &camera);
 
                     for (size_t i = 0; i < strlen(redo.text); ++i) {
                         if (redo.text[i] == '\n') new_line(&text, &lines, &cursor);
@@ -261,7 +256,6 @@ int main(int argc, char **argv)
                     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
                     free(redo.text);
                 }
-                
             }
 
             camera.target.y = font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
@@ -309,19 +303,12 @@ int main(int argc, char **argv)
             else if (IsKeyReleased(KEY_ENTER) && explorer.cursor > -1) {
                 char *selected_path = explorer.filepath_list.paths[explorer.cursor];
                 if (IsPathFile(selected_path) && FileExists(selected_path)) {
-
                     strcpy(explorer.current_file, selected_path);
-                    memset(text.text, '\0', text.size); 
-                    lines.offset = 0;
-                    lines.size = 1;
-                    text.size = 0;
-                    init_cursor(&cursor); // safe, no malloc stuff
-                    init_camera(&camera); // ... //
-                    init_editor(&editor, &cursor, &lines, &text, font, GW, GH, true);
-
+                    editor_reset(&text, &cursor, &lines, &camera);
                     insert_text_from_file(selected_path, &text, &lines, &cursor);
                     cursor_move_start(&cursor);
                     update_cursor_display(&cursor_display, &text, &cursor, &lines, font, font_measuring);
+                    editor.write_mode = true;
                 } 
                 else if (DirectoryExists(selected_path)) {
                     explorer_load_path(&explorer, selected_path);
@@ -337,16 +324,16 @@ int main(int argc, char **argv)
             EndShaderMode();
         }
 
-    
-        // DrawRectangle(0, GH - 40, GW, 40, BLUE);
-        // DrawText(TextFormat(
-        //   "%d--col:%d,row:%d--[%d, %d]--select: %d,%d--off:%d", 
-        //   cursor.pos, cursor.column, cursor.current_line,
-        //   lines.lines[cursor.current_line].start, lines.lines[cursor.current_line].end,
-        //   cursor.selection_begin, cursor.selection_end,
-        //   lines.offset
-        // ), 140, GH - 30, 20, BLACK);
-        DrawText(TextFormat("%d - offset: %zu", GetFPS(), lines.offset), 20, GH-30, 20, RBLUE);
+        //debug purpose   
+        DrawRectangle(0, GH - 40, GW, 40, BLUE);
+        DrawText(TextFormat(
+          "%d--col:%d,row:%d--[%d, %d]--select: %d,%d--off:%d", 
+          cursor.pos, cursor.column, cursor.current_line,
+          lines.lines[cursor.current_line].start, lines.lines[cursor.current_line].end,
+          cursor.selection_begin, cursor.selection_end,
+          lines.offset
+        ), 140, GH - 30, 20, BLACK);
+        // DrawText(TextFormat("%d - offset: %zu", GetFPS(), lines.offset), 20, GH-30, 20, RBLUE);
 
         EndDrawing();
 

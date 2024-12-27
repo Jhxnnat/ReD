@@ -25,6 +25,8 @@ extern float ScreenH;
 #define RAQUA (Color){ 104, 157, 106, 255 }
 #define RORANGE (Color){ 214, 93, 14, 255 }
 
+#define TEXT_INIT_SIZE 8
+#define LINES_INIT_SIZE 10
 #define STACK_MAX_SIZE 10
 
 typedef struct {

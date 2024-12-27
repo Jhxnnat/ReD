@@ -160,15 +160,16 @@ void delete_text(Text *t, Cursor *c, Lines *l) {
 
 
 void resize_lines(Lines *lines) {
-    const size_t new_capacity = lines->capacity * 2;
-    Line *new_lines = realloc(lines->lines, sizeof(Line) * new_capacity);
+    // const size_t new_capacity = lines->capacity * 2;
+    lines->capacity *= 2;
+    Line *new_lines = realloc(lines->lines, sizeof(Line) * lines->capacity);
     if (new_lines == NULL) {
         fprintf(stderr, "Memory reallocation failed\n");
         free(lines->lines); 
         exit(1);
     }
     lines->lines = new_lines;
-    lines->capacity = new_capacity;
+    // lines->capacity = new_capacity;
 }
 
 void new_line(Text *text, Lines *lines, Cursor *c) {
