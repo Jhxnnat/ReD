@@ -3,7 +3,7 @@
 
 #include "ds.h"
 
-float ScreenW = 800;
+float ScreenW = 1000;
 float ScreenH = 600;
 
 void init_text(Text *t, size_t size) {
@@ -49,7 +49,7 @@ void free_lines(Lines *lines) {
     lines->size = 0;
 }
 
-void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool write_mode) {
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool explorer_open) {
     if (window_h <= 0 || window_w <= 0) {
         printf("negative windows haven't been invented yet\n");
         exit(44);
@@ -57,6 +57,7 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font 
 
     Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
     editor->font_measuring = font_measuring;
+    editor->font = font;
 
     float font_height = font_measuring.y;
     editor->max_lines = window_h / font_height;
@@ -69,7 +70,12 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font 
     editor->text = text;
     editor->cursor = cursor;
 
-    editor->write_mode = write_mode;
+    editor->explorer_open = explorer_open;
+    editor->mode = WRITE;
+
+    editor->search_len = 0;
+    editor->result_pos = -1;
+    editor->result_line = -1;
 
     editor->stack_top = 0;
     editor->stack_top_redo = 0;
@@ -97,10 +103,9 @@ void push_undo(Editor *editor, Cursor c, Lines l, const char *text) {
 
 void push_redo(Editor *editor, Cursor c, Lines l, const char *text) {
     if (editor->stack_top_redo >= STACK_MAX_SIZE) {
-        printf("[stack] full\n");
+        printf("[stack] full!\n");
         return;
     }
-
     size_t text_size = editor->text->size;
     editor->stack_r[editor->stack_top_redo].text = malloc(text_size * sizeof(char));
     editor->stack_r[editor->stack_top_redo].text[text_size] = '\0';
@@ -127,3 +132,50 @@ void free_redo(Editor *editor) {
     }
 }
 
+KmpTable __kmp_table(const char *word, int word_len) {
+    int position = 1, candidate = 0;
+    KmpTable T;
+    T.t[0] = -1;
+    while(position < word_len) {
+        if (word[position] == word[candidate]) {
+            T.t[position] = T.t[candidate];
+        } else {
+            T.t[position] = candidate;
+            while (candidate >= 0 && word[position] != word[candidate]) {
+                candidate = T.t[candidate];
+            }
+        }
+        position++;
+        candidate++;
+    }
+    T.t[position] = candidate;
+    return T;
+}
+
+SearchResult kmp_search(Editor e, const char *word, int word_len) {
+    int textpos = 0, wordpos = 0;
+    SearchResult positions = { .np = 0 };
+    KmpTable T = __kmp_table(word, word_len);
+    int l = 0;
+    while (textpos < (int)e.text->size) {
+        if (textpos > e.lines->lines[l].end) {
+            l++;
+        }
+        if (word[wordpos] == e.text->text[textpos]) {
+            wordpos++;
+            textpos++;
+            if (wordpos == word_len) {
+                positions.p[positions.np++] = textpos - wordpos;
+                positions.l[positions.np-1] = l;
+                wordpos = T.t[wordpos];
+            }
+        } else {
+            wordpos = T.t[wordpos];
+            if (wordpos < 0) {
+                wordpos++;
+                textpos++;
+            }
+        }
+    }
+    return positions;
+}

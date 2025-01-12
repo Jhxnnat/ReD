@@ -9,15 +9,15 @@ void init_camera(Camera2D *camera) {
 }
 
 void update_cam_offset_up(Cursor *cursor, Lines *lines){
-    size_t relative_line = cursor->current_line - lines->offset;
+    int relative_line = cursor->current_line - lines->offset;
     if (lines->offset > 0 && relative_line <= 0) {
         lines->offset--;
     }
 }
 
 void update_cam_offset_down(Cursor *cursor, Lines *lines, int max_lines){
-    size_t relative_line = cursor->current_line - lines->offset;
-    if (lines->offset < lines->size && (int)relative_line > max_lines - 1) {
+    int relative_line = cursor->current_line - lines->offset;
+    if (lines->offset < lines->size && relative_line > max_lines - 1) {
         lines->offset++;
     }
 }
@@ -51,3 +51,23 @@ void move_cam_end(Camera2D *camera, Lines *lines, int max_lines) {
     lines->offset = (size_t)_off;
 }
 
+void update_cam(Camera2D *camera, Editor *editor) {
+    size_t range = editor->lines->offset + editor->max_lines - 2;
+    if (editor->cursor->current_line > range) {
+        editor->lines->offset += editor->cursor->current_line - range;
+    } 
+    else if (editor->cursor->current_line < editor->lines->offset) {
+        editor->lines->offset -= (editor->lines->offset - editor->cursor->current_line);
+    }
+
+    int cam_left = camera->target.x + RTEXT_LEFT + editor->font_measuring.y;
+    if (editor->cursor_display.x < cam_left) {
+        camera->target.x -= cam_left - editor->cursor_display.x;
+        if (camera->target.x < 0) camera->target.x = 0;
+    } else {
+        int cam_right = camera->target.x + GW - editor->font_measuring.y;
+        if (editor->cursor_display.x > cam_right) {
+            camera->target.x += editor->cursor_display.x - cam_right;
+        }
+    }
+}

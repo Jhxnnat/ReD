@@ -13,7 +13,7 @@ extern float ScreenH;
 #define RTEXT_LEFT 72
 #define RTEXT_TOP 22
 #define RFONT_SPACING 2
-#define RFONT_SIZE 26
+#define RFONT_SIZE 22
 #define RBLACK (Color){ 29, 32, 33, 255 }
 #define RGRAY (Color){ 146, 131, 116, 255 }
 #define RWHITE (Color){ 242, 229, 188, 255 }
@@ -27,12 +27,20 @@ extern float ScreenH;
 
 #define TEXT_INIT_SIZE 8
 #define LINES_INIT_SIZE 10
-#define STACK_MAX_SIZE 10
+#define STACK_MAX_SIZE 1024
+
+#define RKEY_ACTION KEY_LEFT_CONTROL
+
+typedef enum {
+    WRITE,
+    FIND
+} EditorMode;
 
 typedef struct {
     size_t capacity;
     size_t size;
     char   *text;
+    // int *buff; //codepoint buffer
 } Text;
 
 typedef struct {
@@ -73,6 +81,16 @@ typedef struct {
 } Change;
 
 typedef struct {
+    size_t p[1024];
+    size_t l[1024];
+    int np;
+} SearchResult;
+
+typedef struct {
+    int t[1024];
+} KmpTable;
+
+typedef struct {
     Cursor *cursor;
     Lines *lines;
     Text *text;
@@ -84,7 +102,14 @@ typedef struct {
     int max_lines;
     int hori_offset;
 
-    bool write_mode;
+    bool explorer_open;
+    EditorMode mode;
+
+    char search_promp[255];
+    int search_len;
+    int result_pos;
+    int result_line;
+    SearchResult result;
 
     Change stack[STACK_MAX_SIZE];
     Change stack_r[STACK_MAX_SIZE];
@@ -92,18 +117,21 @@ typedef struct {
     int stack_top_redo;
 } Editor;
 
+
 void init_text(Text *t, size_t size);
 void free_text(Text *t);
 void init_cursor(Cursor *c);
 void init_lines(Lines *lines, size_t initial_capacity);
 void free_lines(Lines *lines);
-void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool write_mode);
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool explorer_open);
 void push_undo(Editor *editor, Cursor c, Lines l, const char *text);
 void push_redo(Editor *editor, Cursor c, Lines l, const char *text);
 void free_undo(Editor *editor);
 void free_redo(Editor *editor);
 
-// void save_file(const char *file_path); //NOTE dont know where to put this
+//KMP Search: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
+//from: https://rosettacode.org/wiki/Knuth-Morris-Pratt_string_search#Python
+SearchResult kmp_search(Editor e, const char *word, int word_len);
 
 #endif // !DS_H
 

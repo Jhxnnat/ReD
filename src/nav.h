@@ -11,7 +11,7 @@ void cursor_move_sol(Cursor *cursor, Lines *lines);
 void cursor_move_eol(Cursor *cursor, Lines *lines);
 void cursor_move_start(Cursor *cursor);
 void cursor_move_end(Cursor *cursor, Lines *lines);
-void update_cursor_display(Vector2 *cursor_display, Text *text, Cursor *cursor, Lines *lines, Font font, Vector2 font_measuring);
+void update_cursor_display(Editor *e);
 
 void selection_reset(Cursor *cursor);
 

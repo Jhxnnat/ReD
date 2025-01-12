@@ -4,6 +4,7 @@
 #include "nav.h"
 
 void insert_text(Text *t, char c, Cursor *cu, Lines *lines);
+// void text_insert(Text *t, int codepoint, Cursor *c, Lines *l);
 void delete_text(Text *t, Cursor *c, Lines *lines);
 // char *_delete_text(Text *t, Cursor *c, Lines *lines);
 void insert_text_from_file(const char *path, Text *text, Lines *lines, Cursor *cursor);

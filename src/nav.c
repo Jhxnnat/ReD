@@ -172,17 +172,16 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
     else __selection_move_down(cursor, prev_pos);
 }
 
-void update_cursor_display(Vector2 *cursor_display, Text *text, Cursor *cursor, Lines *lines, Font font, Vector2 font_measuring) {
-    size_t _range = cursor->pos - lines->lines[cursor->current_line].start;
+void update_cursor_display(Editor *e) {
+    size_t _range = e->cursor->pos - e->lines->lines[e->cursor->current_line].start;
     if (_range <= 0) {
-        cursor_display->x = RTEXT_LEFT;
-        cursor_display->y = RTEXT_TOP+(font_measuring.y*(cursor->current_line))+(RFONT_SPACING*(cursor->current_line));
+        e->cursor_display.x = RTEXT_LEFT;
     } else {
         char _part[_range];
-        strncpy(_part, text->text+lines->lines[cursor->current_line].start, _range);
+        strncpy(_part, e->text->text + e->lines->lines[e->cursor->current_line].start, _range);
         _part[_range] = '\0';
-        Vector2 _text_measure = MeasureTextEx(font, _part, font.baseSize, RFONT_SPACING);
-        cursor_display->x = RTEXT_LEFT+_text_measure.x;
-        cursor_display->y = RTEXT_TOP+(font_measuring.y*(cursor->current_line))+(RFONT_SPACING*cursor->current_line);
+        Vector2 _text_measure = MeasureTextEx(e->font, _part, e->font.baseSize, RFONT_SPACING);
+        e->cursor_display.x = RTEXT_LEFT + _text_measure.x;
     }
+    e->cursor_display.y = RTEXT_TOP + (e->font_measuring.y * (e->cursor->current_line)) + (RFONT_SPACING * e->cursor->current_line);
 }

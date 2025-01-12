@@ -11,5 +11,7 @@ void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines
 void draw_selection(Cursor cursor, Lines lines, Text text, Font font, Vector2 font_measuring);
 void draw_text_tokenized_optimized(const char *text, Lines lines, 
                                    Font font, Vector2 font_measuring, Vector2 position, float fontSize, float spacing);
+void draw_text_tokenized_optimized_hs(const char *text, Lines lines, 
+                                   Font font, Vector2 font_measuring, Vector2 position, float fontSize, float spacing, int result_pos);
 
 #endif // !DRAW_H

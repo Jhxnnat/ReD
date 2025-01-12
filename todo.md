@@ -8,7 +8,7 @@
 - [x] tab indent
 - [x] supr key
 - [x] load file
-- [ ] save file
+- [x] save file
 - [x] line nums
 - [x] selection
     - [x] update to be more 'dynamic'
@@ -34,7 +34,7 @@
     - [ ] test more and more and more
     - [no] works perfect
 - [x] draw just a part of the text? 
-- [ ] draw optimization
+- [x] draw optimization
     - [x] line num
     - [x] text lines
     - [ ] horizontally?
@@ -42,9 +42,18 @@
 
 - [x] resizable window
 
-- [ ] Error management is needed in some void functions
+- [ ] Error management is needed in some functions
 
-## funny
+- [ ] dynamic fonts
+    - [ ] dynamic font size
+
+## Modes
+- [ ] diferent modes to prevent the use of C-* / M-* 
+- [x] nav mode
+    - [ ] word nav
+    - [ ] page nav
+
+## funny/interesting
 - [x] simple syntax highlighting (C)
     - [ ] highlighting single quotes strings
 - [x] file navigation?
@@ -52,18 +61,18 @@
 - [x] crt-shader
     - [x] rounded corners
 - [x] undo/redo
-    - [ ] real usable undo/redo 
+    - [ ] efficient undo/redo 
+- [ ] incremental text search
 
-## do not want to implement
-- [ ] themes
-- [ ] cutomization 
+## pain
+- [ ] windows support 
 
 ## fancy features
-- [ ] sort of vim motions
+- [ ] sort of vim/emacs motions
 - [ ] automatic close brackets: [], {}, ()
 - [ ] new line keeps indentation
 
-## this is not going to happen
+## No: 
 - [ ] LSP & error lens like stuff
 - [ ] api (scripting)
 - [ ] code completition

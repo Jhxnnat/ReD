@@ -1,4 +1,4 @@
-# ReD is a simple retro looking (not yet) text editor made with raylib
+# ReD is a simple retro looking text editor made with raylib
 
 Red stants for Retro eDitor, 
 Raylib eDitor and other coincidences are just coincidences.
