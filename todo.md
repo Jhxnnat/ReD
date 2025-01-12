@@ -62,7 +62,7 @@
     - [x] rounded corners
 - [x] undo/redo
     - [ ] efficient undo/redo 
-- [ ] incremental text search
+- [x] incremental text search
 
 ## pain
 - [ ] windows support 
