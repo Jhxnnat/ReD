@@ -1,7 +1,7 @@
 # get track of stuff to feel better
 
 ## Editor itself
-- [not going great] soporte para el idioma español
+- [x] soporte para el idioma español
 - [x] backspace & enter keyhold
 - [x] arrow navigation
     - [x] home-end navigation
@@ -44,25 +44,19 @@
 
 - [ ] Error management is needed in some functions
 
-- [ ] dynamic fonts
+- [ ] fonts
+    - [ ] use system fonts
     - [ ] dynamic font size
-
-## Modes
-- [ ] diferent modes to prevent the use of C-* / M-* 
-- [x] nav mode
-    - [ ] word nav
-    - [ ] page nav
 
 ## funny/interesting
 - [x] simple syntax highlighting (C)
     - [ ] highlighting single quotes strings
 - [x] file navigation?
-    - [ ] there are some path issues
+    - [ ] path nomalization
 - [x] crt-shader
     - [x] rounded corners
-- [x] undo/redo
-    - [ ] efficient undo/redo 
-- [x] incremental text search
+- [ ] undo/redo (REFACTOR)
+- [ ] incremental text search (REFACTOR)
 
 ## pain
 - [ ] windows support 
@@ -73,6 +67,6 @@
 - [ ] new line keeps indentation
 
 ## No: 
-- [ ] LSP & error lens like stuff
+- [ ] LSP & related stuff
 - [ ] api (scripting)
-- [ ] code completition
+- [ ] code autocompletition

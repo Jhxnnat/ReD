@@ -1,43 +1,38 @@
 #include <string.h>
 #include <stdio.h>
 
-// #include "raylib.h"
 #include "ins.h"
-// #include "cam.h"
 
-void insert_text(Text *t, char c, Cursor *cu, Lines *lines) {
+void insert_text(Text *t, int c, Cursor *cu, Lines *lines) {
     if (cu->pos > t->size) cu->pos = t->size;
-
     const size_t selection_range = cu->selection_end - cu->selection_begin;
     if (selection_range > 0) {
         delete_text(t, cu, lines);
     }
-
     if (t->size >= t->capacity) {
         t->capacity *= 2;
-        char *temp = realloc(t->text, (t->capacity) * sizeof(char));
+        int *temp = realloc(t->buff, (t->capacity) * sizeof(int));
         if (temp == NULL) {
             printf("Error realloc!!!\n");
             exit(0);
         } else { 
-            t->text = temp;
+            t->buff = temp;
         }
     }
-
     t->size++;
-    memmove(t->text + cu->pos+1, t->text + cu->pos, t->size - cu->pos+1);
-    t->text[cu->pos] = c;
+    for (size_t i = t->size; i > cu->pos; --i) {
+        t->buff[i] = t->buff[i-1];
+    }
+    t->buff[cu->pos] = c;
     cu->pos++;
     cu->column++;
     lines->lines[cu->current_line].end += 1;
-
     if (cu->current_line < lines->size-1) {
         for (size_t i = cu->current_line+1; i < lines->size; ++i) { // move other lines when inserting before last line
             lines->lines[i].start++;
             lines->lines[i].end++;
         }
     }
-
     cu->selection_begin = cu->pos;
     cu->selection_end = cu->pos;
 }
@@ -100,7 +95,7 @@ char *_delete_text(Text *t, Cursor *c, Lines *l) {
 
     deleted[selection_range] = '\0';
     if (selection_range > 0) {
-        strncpy(deleted, t->text + c->selection_begin, selection_range);
+        // strncpy(deleted, (char *)t->buff + c->selection_begin, selection_range);
     }
 
     while (repeat > 0) {
@@ -109,8 +104,8 @@ char *_delete_text(Text *t, Cursor *c, Lines *l) {
         _delete_recalculate_lines(c, l);
 
         c->pos--;
-        memmove(t->text + c->pos, t->text + c->pos+1, t->size - c->pos+1);
-        t->text[t->size] = '\0';
+        memmove(t->buff + c->pos, t->buff + c->pos+1, t->size - c->pos+1);
+        t->buff[t->size] = '\0';
         t->size--;
     }
 
@@ -120,17 +115,6 @@ char *_delete_text(Text *t, Cursor *c, Lines *l) {
 }
 
 void delete_text(Text *t, Cursor *c, Lines *l) {
-/// Deleting a selection: 
-// dumb way: put cursor in selection_end, delete char per char in a loop
-// not so dumb easy way: 
-//   if there one of two line selected just do the easy way
-//   if there are multiple lines selected we:
-//      - easy way on final line 
-//      - delete all betwen lines, update selection lines.lines etc 
-//      - easy way on first line 
-//      - memmove?
-
-    //lets go easy (dumb) way for now 
     size_t repeat = 1;
     const int selection_range = c->selection_end - c->selection_begin;
     if (selection_range > 0) {
@@ -139,22 +123,19 @@ void delete_text(Text *t, Cursor *c, Lines *l) {
         c->pos = c->selection_end;
         c->column = c->selection_end - l->lines[c->current_line].start;
     }
-
     if ((t->size == 0) || (c->pos == 0)) {
         return;
     }
-
     while (repeat > 0) {
         repeat--;
-
         _delete_recalculate_lines(c, l);
-
         c->pos--;
-        memmove(t->text + c->pos, t->text + c->pos+1, t->size - c->pos+1);
-        t->text[t->size] = '\0';
+        for (size_t i = c->pos; i < t->size; ++i) {
+            t->buff[i] = t->buff[i+1];
+        }
+        t->buff[t->size] = 0;
         t->size--;
     }
-
     selection_reset(c);
 }
 
@@ -211,7 +192,7 @@ void copy_text(Text *text, Cursor *cursor) {
     const size_t range = cursor->selection_end - cursor->selection_begin;
     if (range <= 0) return;
     char copied_text[range];
-    strncpy(copied_text, text->text + cursor->selection_begin, range);
+    // strncpy(copied_text, (char *)text->buff + cursor->selection_begin, range);
     copied_text[range] = '\0';
     printf("copied_text: %s\n", copied_text);
     SetClipboardText(copied_text);

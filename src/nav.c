@@ -128,25 +128,17 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
 void cursor_move_sol(Cursor *cursor, Lines *lines) {
     cursor->pos = lines->lines[cursor->current_line].start;
     cursor->column = 0;
-
     if (!cursor->is_selecting) selection_reset(cursor);
     else __selection_move_left(cursor);
 }
 
 void cursor_move_eol(Cursor *cursor, Lines *lines) {
-    size_t _len = lines->lines[cursor->current_line].end - lines->lines[cursor->current_line].start;
-    if (_len > 0) {
-        int _off = 1;
-        if (lines->size <= 1 || cursor->current_line == lines->size-1) {
-            _off = 0;
-        }
-        cursor->column = _len;
-        cursor->pos = lines->lines[cursor->current_line].end - _off;
-    } else {
-        cursor->column = 0;
+    if (cursor->current_line == lines->size-1) {
         cursor->pos = lines->lines[cursor->current_line].end;
+    } else {
+        cursor->pos = lines->lines[cursor->current_line].end - 1;
     }
-
+    cursor->column = cursor->pos - lines->lines[cursor->current_line].start;
     if (!cursor->is_selecting) selection_reset(cursor);
     else __selection_move_right(cursor);
 }
@@ -156,8 +148,6 @@ void cursor_move_start(Cursor *cursor) {
     cursor->pos = 0;
     cursor->column = 0;
     cursor->current_line = 0;
-
-    // lines->offset = 0;
     if (!cursor->is_selecting) selection_reset(cursor);
     else __selection_move_up(cursor, prev_pos); 
 }
@@ -172,16 +162,7 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
     else __selection_move_down(cursor, prev_pos);
 }
 
-void update_cursor_display(Editor *e) {
-    size_t _range = e->cursor->pos - e->lines->lines[e->cursor->current_line].start;
-    if (_range <= 0) {
-        e->cursor_display.x = RTEXT_LEFT;
-    } else {
-        char _part[_range];
-        strncpy(_part, e->text->text + e->lines->lines[e->cursor->current_line].start, _range);
-        _part[_range] = '\0';
-        Vector2 _text_measure = MeasureTextEx(e->font, _part, e->font.baseSize, RFONT_SPACING);
-        e->cursor_display.x = RTEXT_LEFT + _text_measure.x;
-    }
+void update_cursor_display(Editor *e) { //NOTE only works with monospaced fonts
+    e->cursor_display.x = RTEXT_LEFT + e->cursor->column * (e->font_measuring.x + RFONT_SPACING);
     e->cursor_display.y = RTEXT_TOP + (e->font_measuring.y * (e->cursor->current_line)) + (RFONT_SPACING * e->cursor->current_line);
 }

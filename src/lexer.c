@@ -2,6 +2,8 @@
 #include "ds.h"
 #include "lexer.h"
 
+#include <stdio.h>
+
 const char *token_name(TokenType kind){
     switch (kind) {
         case TOKEN_KEYWORD: return "token keyword";
@@ -30,7 +32,7 @@ Color token_color(TokenType kind){
     }
 }
 
-bool is_at_end(const char *c) {
+bool is_at_end(const int *c) {
     return *c == '\0';
 }
 
@@ -43,24 +45,24 @@ Token make_token(Scanner *scanner, TokenType type) {
     return token;
 }
 
-char advance(Scanner *scanner) {
+int advance(Scanner *scanner) {
     scanner->current++;
     scanner->cursor++;
     return scanner->current[-1];
 }
 
-char peek(Scanner *scanner) {
+int peek(Scanner *scanner) {
     return *scanner->current;
 }
 
-char peek_next(Scanner *scanner) {
+int peek_next(Scanner *scanner) {
     if (is_at_end(scanner->current)) return '\0';
     return scanner->current[1];
 }
 
 bool skip_whitespace(Scanner *scanner) {
     for (;;) {
-        char c = peek(scanner);
+        int c = peek(scanner);
         switch(c) {
             // case ' ':
             // case '\r':
@@ -128,10 +130,19 @@ bool is_alpha(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
+bool compare(const int *_a, const char *_b, int len) {
+    for (int i = 0; i < len; ++i) {
+        // printf("[compare] a: %d b: %d\n", _a[i], (int)_b[i]);
+        if (_a[i] != (int)_b[i]) return false;
+    }
+    // printf("\n");
+    return true;
+}
+
 TokenType check_keyword(Scanner *scanner, const char *rest) {
-    const size_t len = strlen(rest);
-    const size_t len2 = scanner->current - scanner->start;
-    if (len2 == len && memcmp(scanner->start, rest, len) == 0) {
+    const int len = strlen(rest);
+    const int len2 = scanner->current - scanner->start;
+    if (len2 == len && compare(scanner->start, rest, len)) {
         return TOKEN_KEYWORD;
     }
     return TOKEN_IDENTIFIER;
@@ -171,9 +182,15 @@ TokenType identifier_type(Scanner *scanner) {
         case 'w': return check_keyword(scanner, "while");
         case 'v': return check_keyword(scanner, "void");
         case 't': return check_keyword(scanner, "typedef");
-        case 'f': return check_keyword(scanner, "float");
+        case 'f':
+            if (scanner->current - scanner->start > 1) {
+                switch(scanner->start[1]) {
+                    case 'o': return check_keyword(scanner, "for");
+                    case 'l': return check_keyword(scanner, "float");
+                }
+            }
+            break;
         case 'b': return check_keyword(scanner, "bool");
-        // case 'm': return check_keyword(scanner, "main");
     }
   
     return TOKEN_IDENTIFIER;
@@ -189,7 +206,7 @@ Token scan_token(Scanner *scanner) {
 
     if (is_at_end(scanner->current)) return make_token(scanner, TOKEN_EOL);
 
-    char c = advance(scanner);
+    int c = advance(scanner);
     if (is_alpha(c)) return make_identifier(scanner);
     if (is_digit(c)) return make_number(scanner);
 

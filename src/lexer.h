@@ -18,7 +18,7 @@ typedef enum {
 
 typedef struct {
     TokenType type;
-    const char *start;
+    const int *start;
     size_t len;
     size_t line;
 
@@ -27,8 +27,8 @@ typedef struct {
 } Token;
 
 typedef struct {
-    const char* start;
-    const char* current;
+    const int* start;
+    const int* current;
     size_t cursor;
     int line;
 } Scanner;

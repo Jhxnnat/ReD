@@ -10,9 +10,9 @@
 #include "explorer.h"
 
 void editor_reset(Text *text, Cursor *cursor, Lines *lines, Camera2D *camera) {
-    memset(text->text, '\0', text->size); 
+    memset(text->buff, 0, text->size); 
     text->size = 0;
-    init_cursor(cursor); // no malloc stuff
+    init_cursor(cursor); // no malloc
     init_camera(camera); // ... //
     for (size_t n = 0; n < lines->size; ++n) {
         lines->lines[n].start = 0;
@@ -38,7 +38,7 @@ void result_update(Editor *editor, Camera2D *camera){
     update_cam(camera, editor);
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
     Text text;
     init_text(&text, TEXT_INIT_SIZE);
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     explorer.lines_amount = (GH/font_measuring.y)-4;
     init_editor(&editor, &cursor, &lines, &text, font, GW, GH, start_explorer_open);
     update_cursor_display(&editor);
-    push_undo(&editor, cursor, lines, text.text);
+    // push_undo(&editor, cursor, lines, (char *)text.buff);
 
     RenderTexture2D tex = LoadRenderTexture(GW, GH);
 
@@ -169,7 +169,11 @@ int main(int argc, char **argv)
                 case WRITE: {
                     int key = GetCharPressed();
                     while (key > 0 && key <= 255) {
-                        insert_text(&text, (char)key, &cursor, &lines);
+                        insert_text(&text, key, &cursor, &lines);
+                        for (size_t i = 0; i < text.size; ++i) {
+                            printf("> %d\n", text.buff[i]);
+                        }
+                        printf("--\n");
                         update_cursor_display(&editor);
                         move_cam_right(&camera, editor.cursor_display.x, font_measuring.y);
                         key = GetCharPressed();
@@ -181,7 +185,7 @@ int main(int argc, char **argv)
                         // move_cam_left(&camera, editor.cursor_display.x, font_measuring.y);
                         update_cam(&camera, &editor);
 
-                        push_undo(&editor, cursor, lines, text.text);
+                        push_undo(&editor, cursor, lines, (char *)text.buff);
                     }
                     else if (IsKeyPressed(KEY_BACKSPACE)) {
                         delete_text(&text, &cursor, &lines);
@@ -266,17 +270,17 @@ int main(int argc, char **argv)
                             if (IsKeyUp(KEY_LEFT_SHIFT)) {
                                 cursor_move_end(&cursor, &lines);
                                 update_cursor_display(&editor);
-                                // update_cam(&camera, &editor);
-                                move_cam_end(&camera, &lines, editor.max_lines);
+                                update_cam(&camera, &editor);
+                                // move_cam_end(&camera, &lines, editor.max_lines);
                             } else if (strlen(explorer.current_file) > 0) {
-                                SaveFileText(explorer.current_file, text.text);
+                                SaveFileText(explorer.current_file, (char *)text.buff);
                             }
                         }
                         else if (IsKeyPressed(KEY_F)) {
                             editor.mode = FIND;
                         }
                         else if (IsKeyPressed(KEY_Z) && editor.stack_top > 0) {
-                            push_redo(&editor, cursor, lines, text.text);
+                            push_redo(&editor, cursor, lines, (char *)text.buff);
                             Change undo = editor.stack[--editor.stack_top];
                             printf("[undo]::\n%s\n", undo.text);
 
@@ -297,7 +301,7 @@ int main(int argc, char **argv)
 
                             free(undo.text);
                         } else if (IsKeyPressed(KEY_Y) && editor.stack_top_redo > 0) {
-                            push_undo(&editor, cursor, lines, text.text);
+                            push_undo(&editor, cursor, lines, (char *)text.buff);
                             Change redo = editor.stack_r[--editor.stack_top_redo];
                             printf("[redo]:: %s\n", redo.text);
 
@@ -332,25 +336,16 @@ int main(int argc, char **argv)
             DrawRectangle(0, 0, GW, GH, RBLACK);
             BeginMode2D(camera);
 
-            draw_text_tokenized_optimized(
-                text.text, lines,
-                font, font_measuring,
-                (Vector2){RTEXT_LEFT, RTEXT_TOP},
-                (float)font.baseSize,
-                RFONT_SPACING
-            );
-            // draw_text_tokenized_optimized_hs(
-            //     text.text, lines,
-            //     font, font_measuring,
-            //     (Vector2){RTEXT_LEFT, RTEXT_TOP},
-            //     (float)font.baseSize,
-            //     RFONT_SPACING,
-            //     editor.result_pos
-            // );
+            if (ACTIVE_HIGHLIGHTING) {
+                draw_text_tokenized_optimized(text.buff, lines, font, font_measuring, (Vector2){ RTEXT_LEFT, RTEXT_TOP }, font.baseSize, RFONT_SPACING);
+            } else {
+                draw_text_optimized(text, lines, font, font_measuring, (Vector2){ RTEXT_LEFT, RTEXT_TOP }, (float)font.baseSize, RFONT_SPACING, RWHITE);
+            }
 
             DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, font_measuring.x, font_measuring.y, RWHITE);
-            const char cu = text.text[cursor.pos];
-            DrawTextEx(font, TextFormat("%c", cu), editor.cursor_display, font.baseSize, RFONT_SPACING, RBLACK);
+            if (text.buff[cursor.pos] != '\n' && text.size > cursor.pos) {
+                DrawTextCodepoint(font, text.buff[cursor.pos], editor.cursor_display, editor.font.baseSize, RBLACK);
+            }
 
             draw_selection(cursor, lines, text, font, font_measuring);
 

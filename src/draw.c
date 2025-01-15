@@ -14,9 +14,9 @@ void draw_text_line_token(Token token, float *textOffsetX, Font font, Vector2 po
     float textOffsetY = (fontSize + textLineSpacing) * (token.line - 1);
     float scaleFactor = fontSize / font.baseSize;
 
-    for (size_t i = 0; i < token.len;) {
-        int codepointByteCount = 0;
-        int codepoint = GetCodepointNext(&token.start[i], &codepointByteCount);
+    for (size_t i = 0; i < token.len; ++i) {
+        // int codepointByteCount = 0;
+        int codepoint = token.start[i];// GetCodepointNext(&token.start[i], &codepointByteCount);
         int index = GetGlyphIndex(font, codepoint);
         if (codepoint == '\n') break;
         else {
@@ -26,11 +26,11 @@ void draw_text_line_token(Token token, float *textOffsetX, Font font, Vector2 po
             if (font.glyphs[index].advanceX == 0) { *textOffsetX += ((float)font.recs[index].width * scaleFactor + spacing); }
             else { *textOffsetX += ((float)font.glyphs[index].advanceX * scaleFactor + spacing); }
         }
-        i += codepointByteCount;
+        // i += codepointByteCount;
     }
 }
 
-void draw_text_tokenized(const char *text, Font font, Vector2 position, float fontSize, float spacing){
+void draw_text_tokenized(const int *text, Font font, Vector2 position, float fontSize, float spacing){
     Scanner scanner;
     scanner.start = text;
     scanner.current = text;
@@ -50,7 +50,7 @@ void draw_text_tokenized(const char *text, Font font, Vector2 position, float fo
     }
 }
 
-void draw_text_tokenized_optimized(const char *text, Lines lines, 
+void draw_text_tokenized_optimized(const int *text, Lines lines, 
                                    Font font, Vector2 font_measuring, Vector2 position, float fontSize, float spacing) {
     Scanner scanner;
     scanner.cursor = 0;
@@ -79,38 +79,21 @@ void draw_text_tokenized_optimized(const char *text, Lines lines,
     }
 }
 
-void draw_text_tokenized_optimized_hs(const char *text, Lines lines, 
-            Font font, Vector2 font_measuring, Vector2 position, float fontSize, float spacing, int result_pos) {
-    Scanner scanner;
-    scanner.cursor = 0;
-    scanner.line = 1;
-    
-    size_t text_from = lines.lines[lines.offset].start;
-    scanner.start = text+text_from;
-    scanner.current = text+text_from;
-
+void draw_text_optimized(Text text, Lines lines, Font font, Vector2 font_measuring, Vector2 position, float fontSize, float spacing, Color color) {
+    size_t text_start = lines.lines[lines.offset].start;
     int max_lines = (GH/font_measuring.y) - 3;
+    size_t text_end;
+    if (lines.offset + max_lines >= lines.size) { text_end = lines.lines[lines.size-1].end; }
+    else { text_end = lines.lines[lines.offset + max_lines].end; }
 
-    int line = -1;
-    float textOffsetX = 0.0f;
-    for (;;) {
-        Token token = scan_token(&scanner);
-        if ((int)token.line != line) {
-            line = token.line;
-            textOffsetX = 0.0f;
-        }
-        Vector2 new_position = {
-            position.x,
-            position.y + (lines.offset * font_measuring.y) + (lines.offset * spacing)
-        };
-        draw_text_line_token(token, &textOffsetX, font, new_position, fontSize, spacing);
-        if (token.type == TOKEN_EOL || line >= max_lines) break;
-    }
+    Vector2 newpos = position;
+    newpos.y = newpos.y + (lines.offset * font_measuring.y) + (lines.offset * spacing);
+    DrawTextCodepoints(font, text.buff+text_start, text_end - text_start, newpos, fontSize, spacing, color);
 }
 
 void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines lines){
     size_t max_lines = (GH/font_measuring.y) - 3 + lines.offset; //NOTE yes, arbitrary num '3'
-    if (max_lines > lines.size+1) { max_lines = lines.size+1; } 
+    if (max_lines > lines.size + 1) { max_lines = lines.size + 1; } 
     size_t top = lines.offset;
 
     for (size_t i = top; i < max_lines; ++i) {
@@ -130,7 +113,7 @@ Vector2 _measure_text_part(Text *text, Font font, size_t start, size_t range) {
         return measurement_;
     }
     char part[range];
-    strncpy(part, text->text+start, range);
+    strncpy(part, (char *)text->buff+start, range);
     part[range] = '\0';
     Vector2 measurement = MeasureTextEx(font, part, font.baseSize, RFONT_SPACING);
     return measurement;

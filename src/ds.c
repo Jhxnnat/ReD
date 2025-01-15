@@ -7,15 +7,14 @@ float ScreenW = 1000;
 float ScreenH = 600;
 
 void init_text(Text *t, size_t size) {
-    t->text = malloc(size * sizeof(char));
-    t->text[size] = '\0';
+    t->buff = malloc(size * sizeof(int));
     t->capacity = size;
     t->size = 0;
 }
 
 void free_text(Text *t) {
-    free(t->text);
-    t->text = NULL;
+    free(t->buff);
+    t->buff = NULL;
     t->size = 0;
     t->capacity = 0;
 }
@@ -152,7 +151,7 @@ KmpTable __kmp_table(const char *word, int word_len) {
     return T;
 }
 
-SearchResult kmp_search(Editor e, const char *word, int word_len) {
+SearchResult kmp_search(Editor e, const char *word, int word_len) { //TODO maybe word should be array of int
     int textpos = 0, wordpos = 0;
     SearchResult positions = { .np = 0 };
     KmpTable T = __kmp_table(word, word_len);
@@ -161,7 +160,7 @@ SearchResult kmp_search(Editor e, const char *word, int word_len) {
         if (textpos > e.lines->lines[l].end) {
             l++;
         }
-        if (word[wordpos] == e.text->text[textpos]) {
+        if (word[wordpos] == (char)(e.text->buff[textpos])) {
             wordpos++;
             textpos++;
             if (wordpos == word_len) {

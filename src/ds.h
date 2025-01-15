@@ -7,7 +7,7 @@
 
 extern float ScreenW;
 extern float ScreenH;
-#define NAME "Retro eDitor - [0.0.1]"
+#define NAME "Retro eDitor - [0.0.2]"
 #define GW ScreenW
 #define GH ScreenH
 #define RTEXT_LEFT 72
@@ -30,6 +30,7 @@ extern float ScreenH;
 #define STACK_MAX_SIZE 1024
 
 #define RKEY_ACTION KEY_LEFT_CONTROL
+#define ACTIVE_HIGHLIGHTING false
 
 typedef enum {
     WRITE,
@@ -39,8 +40,7 @@ typedef enum {
 typedef struct {
     size_t capacity;
     size_t size;
-    char   *text;
-    // int *buff; //codepoint buffer
+    int *buff; //codepoint buffer
 } Text;
 
 typedef struct {
@@ -116,7 +116,6 @@ typedef struct {
     int stack_top;
     int stack_top_redo;
 } Editor;
-
 
 void init_text(Text *t, size_t size);
 void free_text(Text *t);
