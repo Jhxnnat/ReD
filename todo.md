@@ -56,6 +56,7 @@
 - [x] crt-shader
     - [x] rounded corners
 - [ ] undo/redo (REFACTOR)
+    - [ ] find nice way to manage push
 - [ ] incremental text search (REFACTOR)
 
 ## pain

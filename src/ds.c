@@ -51,7 +51,7 @@ void free_lines(Lines *lines) {
 void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool explorer_open) {
     if (window_h <= 0 || window_w <= 0) {
         printf("negative windows haven't been invented yet\n");
-        exit(44);
+        exit(69);
     }
 
     Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
@@ -80,17 +80,17 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font 
     editor->stack_top_redo = 0;
 }
 
-void push_undo(Editor *editor, Cursor c, Lines l, const char *text) {
+void push_undo(Editor *editor, Cursor c, Lines l) {
     if (editor->stack_top >= STACK_MAX_SIZE) {
         printf("[stack] full\n");
         return;
     }
-
     size_t text_size = editor->text->size;
-    editor->stack[editor->stack_top].text = malloc(text_size * sizeof(char));
-    editor->stack[editor->stack_top].text[text_size] = '\0';
-    strncpy(editor->stack[editor->stack_top].text, text, text_size);
-
+    editor->stack[editor->stack_top].size = text_size;
+    editor->stack[editor->stack_top].text = malloc(text_size * sizeof(int));
+    for (size_t i = 0; i < text_size; ++i) {
+        editor->stack[editor->stack_top].text[i] = editor->text->buff[i];
+    }
     editor->stack[editor->stack_top].cursor_pos = c.pos;
     editor->stack[editor->stack_top].col = c.column;
     editor->stack[editor->stack_top].line = c.current_line;
@@ -100,16 +100,17 @@ void push_undo(Editor *editor, Cursor c, Lines l, const char *text) {
     editor->stack_top++;
 }
 
-void push_redo(Editor *editor, Cursor c, Lines l, const char *text) {
+void push_redo(Editor *editor, Cursor c, Lines l) {
     if (editor->stack_top_redo >= STACK_MAX_SIZE) {
         printf("[stack] full!\n");
         return;
     }
     size_t text_size = editor->text->size;
-    editor->stack_r[editor->stack_top_redo].text = malloc(text_size * sizeof(char));
-    editor->stack_r[editor->stack_top_redo].text[text_size] = '\0';
-    strncpy(editor->stack_r[editor->stack_top_redo].text, text, text_size);
-
+    editor->stack_r[editor->stack_top_redo].size = text_size;
+    editor->stack_r[editor->stack_top_redo].text = malloc(text_size * sizeof(int));
+    for (size_t i = 0; i < text_size; ++i) {
+        editor->stack_r[editor->stack_top_redo].text[i] = editor->text->buff[i];
+    }
     editor->stack_r[editor->stack_top_redo].cursor_pos = c.pos;
     editor->stack_r[editor->stack_top_redo].col = c.column;
     editor->stack_r[editor->stack_top_redo].line = c.current_line;
@@ -131,7 +132,7 @@ void free_redo(Editor *editor) {
     }
 }
 
-KmpTable __kmp_table(const char *word, int word_len) {
+KmpTable __kmp_table(const int *word, int word_len) {
     int position = 1, candidate = 0;
     KmpTable T;
     T.t[0] = -1;
@@ -151,16 +152,16 @@ KmpTable __kmp_table(const char *word, int word_len) {
     return T;
 }
 
-SearchResult kmp_search(Editor e, const char *word, int word_len) { //TODO maybe word should be array of int
+SearchResult kmp_search(Editor e, const int *word, int word_len) {
     int textpos = 0, wordpos = 0;
     SearchResult positions = { .np = 0 };
     KmpTable T = __kmp_table(word, word_len);
     int l = 0;
     while (textpos < (int)e.text->size) {
-        if (textpos > e.lines->lines[l].end) {
+        if (textpos > (int)e.lines->lines[l].end) {
             l++;
         }
-        if (word[wordpos] == (char)(e.text->buff[textpos])) {
+        if (word[wordpos] == (e.text->buff[textpos])) {
             wordpos++;
             textpos++;
             if (wordpos == word_len) {

@@ -69,14 +69,13 @@ typedef struct {
 } Cursor;
 
 typedef struct {
-    char *text;
-    
+    int *text;
+    size_t size;
     size_t cursor_pos;
     size_t col;
     size_t line;
     size_t hori_off;
     size_t vert_off;
-
     bool is_inserted;
 } Change;
 
@@ -105,7 +104,7 @@ typedef struct {
     bool explorer_open;
     EditorMode mode;
 
-    char search_promp[255];
+    int search_promp[255];
     int search_len;
     int result_pos;
     int result_line;
@@ -123,14 +122,14 @@ void init_cursor(Cursor *c);
 void init_lines(Lines *lines, size_t initial_capacity);
 void free_lines(Lines *lines);
 void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool explorer_open);
-void push_undo(Editor *editor, Cursor c, Lines l, const char *text);
-void push_redo(Editor *editor, Cursor c, Lines l, const char *text);
+void push_undo(Editor *editor, Cursor c, Lines l);
+void push_redo(Editor *editor, Cursor c, Lines l);
 void free_undo(Editor *editor);
 void free_redo(Editor *editor);
 
 //KMP Search: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
 //from: https://rosettacode.org/wiki/Knuth-Morris-Pratt_string_search#Python
-SearchResult kmp_search(Editor e, const char *word, int word_len);
+SearchResult kmp_search(Editor e, const int *word, int word_len);
 
 #endif // !DS_H
 

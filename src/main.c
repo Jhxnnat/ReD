@@ -49,14 +49,29 @@ int main(int argc, char **argv)
 
     Camera2D camera = { 0 };
     init_camera(&camera);
-    // Vector2 cursor_display;
-    // cursor_display.x = 0;
-    // cursor_display.y = 0;
 
     Editor editor;
     Explorer explorer;
     explorer_init(&explorer);
     bool start_explorer_open;
+
+
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(GW, GH, NAME);
+    SetWindowMinSize(400, 300);
+    SetExitKey(0);
+    SetTargetFPS(60);
+
+    Shader crt = LoadShader(0, "./assets/shader/crt.glsl");
+    float sh_rh = GetShaderLocation(crt, "renderHeight");
+    SetShaderValue(crt, sh_rh, &ScreenH, SHADER_UNIFORM_FLOAT);
+
+    Font font = LoadFontEx("./assets/fonts/BigBlueTerminal/BigBlueTermPlusNerdFontMono-Regular.ttf", RFONT_SIZE, NULL, 250);
+    if (!IsFontValid(font)) {
+        font = GetFontDefault();
+    }
+
+    Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
 
     if (argc == 1) {
         explorer_load_path(&explorer, ".");
@@ -83,27 +98,10 @@ int main(int argc, char **argv)
         }
     }
 
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(GW, GH, NAME);
-    SetWindowMinSize(400, 300);
-    SetExitKey(0);
-    SetTargetFPS(60);
-
-    Shader crt = LoadShader(0, "./assets/shader/crt.glsl");
-    float sh_rh = GetShaderLocation(crt, "renderHeight");
-    SetShaderValue(crt, sh_rh, &ScreenH, SHADER_UNIFORM_FLOAT);
-
-    Font font = LoadFontEx("./assets/fonts/BigBlueTerminal/BigBlueTermPlusNerdFontMono-Regular.ttf", RFONT_SIZE, NULL, 250);
-    if (!IsFontValid(font)) {
-        font = GetFontDefault();
-    }
-
-    Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
-
     explorer.lines_amount = (GH/font_measuring.y)-4;
     init_editor(&editor, &cursor, &lines, &text, font, GW, GH, start_explorer_open);
     update_cursor_display(&editor);
-    // push_undo(&editor, cursor, lines, (char *)text.buff);
+    push_undo(&editor, cursor, lines);
 
     RenderTexture2D tex = LoadRenderTexture(GW, GH);
 
@@ -118,7 +116,6 @@ int main(int argc, char **argv)
         if (editor.explorer_open) {
             switch(editor.mode) {
                 case FIND: {
-                    // SearchResult result;
                     static int __pos = -1;
                     if (IsKeyPressed(KEY_ESCAPE)) {
                         editor.mode = WRITE;
@@ -128,8 +125,8 @@ int main(int argc, char **argv)
                         break;
                     }
                     int key = GetCharPressed();
-                    while (key > 0 && key <= 255 && strlen(editor.search_promp) < 255) {
-                        editor.search_promp[editor.search_len++] = (char)(key);
+                    while (key > 0 && key <= 255 && editor.search_len < 255) {
+                        editor.search_promp[editor.search_len++] = key;
                         editor.result = kmp_search(editor, editor.search_promp, editor.search_len);
                         if (editor.search_len > 0 && editor.result.np > 0) {
                             __pos = (editor.result.np > 1) ? 1 : 0;
@@ -170,10 +167,6 @@ int main(int argc, char **argv)
                     int key = GetCharPressed();
                     while (key > 0 && key <= 255) {
                         insert_text(&text, key, &cursor, &lines);
-                        for (size_t i = 0; i < text.size; ++i) {
-                            printf("> %d\n", text.buff[i]);
-                        }
-                        printf("--\n");
                         update_cursor_display(&editor);
                         move_cam_right(&camera, editor.cursor_display.x, font_measuring.y);
                         key = GetCharPressed();
@@ -182,20 +175,14 @@ int main(int argc, char **argv)
                         new_line(&text, &lines, &cursor);
                         update_cam_offset_down(&cursor, &lines, editor.max_lines);
                         update_cursor_display(&editor);
-                        // move_cam_left(&camera, editor.cursor_display.x, font_measuring.y);
                         update_cam(&camera, &editor);
 
-                        push_undo(&editor, cursor, lines, (char *)text.buff);
+                        push_undo(&editor, cursor, lines);
                     }
                     else if (IsKeyPressed(KEY_BACKSPACE)) {
                         delete_text(&text, &cursor, &lines);
                         update_cursor_display(&editor);
                         update_cam(&camera, &editor);
-                        //TODO take on count pressin backspace on first line, cam should go up
-                        // move_cam_left(&camera, editor.cursor_display.x, font_measuring.y); 
-                        // if (cursor.column >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
-                        //     move_cam_right(&camera, editor.cursor_display.x, font_measuring.y);
-                        // }
                     }
                     else if (IsKeyPressed(KEY_TAB)) {
                         insert_text(&text, ' ', &cursor, &lines);
@@ -213,32 +200,22 @@ int main(int argc, char **argv)
                             update_cam_offset_down(&cursor, &lines, editor.max_lines);
                             update_cursor_display(&editor);
                             update_cam(&camera, &editor);
-                            // move_cam_right(&camera, editor.cursor_display.x, font_measuring.y);
-                            // if (cursor.column == 0) {
-                            //     move_cam_left(&camera, editor.cursor_display.x, font_measuring.y);
-                            // }
                         } 
                         else if (IsKeyPressed(KEY_J) && cursor.pos > 0) {
                             cursor_move_h(&cursor, &lines, true);
                             update_cam_offset_up(&cursor, &lines);
                             update_cursor_display(&editor);
                             update_cam(&camera, &editor);
-                            // move_cam_left(&camera, editor.cursor_display.x, font_measuring.y);
-                            // if (cursor.column >= lines.lines[cursor.current_line].end - lines.lines[cursor.current_line].start - 1) {
-                            //     move_cam_right(&camera, editor.cursor_display.x, font_measuring.y);
-                            // }
                         }
                         else if (IsKeyPressed(KEY_I)) {
                             cursor_move_v(&cursor, &lines, -1);
                             update_cursor_display(&editor);
                             update_cam(&camera, &editor);
-                            // update_cam_offset_up(&cursor, &lines);
                         }
                         else if (IsKeyPressed(KEY_K)) {
                             cursor_move_v(&cursor, &lines, 1);
                             update_cursor_display(&editor);
                             update_cam(&camera, &editor);
-                            // update_cam_offset_down(&cursor, &lines, editor.max_lines);
                         }
 
                         else if (IsKeyPressed(KEY_C)) copy_text(&text, &cursor);
@@ -267,57 +244,57 @@ int main(int argc, char **argv)
                             move_cam_start(&camera, &lines);
                         }
                         else if (IsKeyPressed(KEY_S)) {
-                            if (IsKeyUp(KEY_LEFT_SHIFT)) {
-                                cursor_move_end(&cursor, &lines);
-                                update_cursor_display(&editor);
-                                update_cam(&camera, &editor);
-                                // move_cam_end(&camera, &lines, editor.max_lines);
-                            } else if (strlen(explorer.current_file) > 0) {
-                                SaveFileText(explorer.current_file, (char *)text.buff);
-                            }
+                            cursor_move_end(&cursor, &lines);
+                            update_cursor_display(&editor);
+                            update_cam(&camera, &editor);
+                        }
+                        else if (IsKeyPressed(KEY_G) && (strlen(explorer.current_file) > 0)) {
+                            // push_undo(&editor, cursor, lines);
+                            char *_s = LoadUTF8(text.buff, text.size);
+                            SaveFileText(explorer.current_file, _s);
+                            UnloadUTF8(_s);
                         }
                         else if (IsKeyPressed(KEY_F)) {
                             editor.mode = FIND;
                         }
-                        else if (IsKeyPressed(KEY_Z) && editor.stack_top > 0) {
-                            push_redo(&editor, cursor, lines, (char *)text.buff);
-                            Change undo = editor.stack[--editor.stack_top];
-                            printf("[undo]::\n%s\n", undo.text);
+                        // else if (IsKeyPressed(KEY_Z) && editor.stack_top > 0) {
+                        //     push_redo(&editor, cursor, lines);
+                        //     Change undo = editor.stack[--editor.stack_top];
 
-                            editor_reset(&text, &cursor, &lines, &camera);
-                            
-                            for (size_t i = 0; i < strlen(undo.text); ++i) {
-                                if (undo.text[i] == '\n') new_line(&text, &lines, &cursor);
-                                else insert_text(&text, undo.text[i], &cursor, &lines);
-                            }
+                        //     editor_reset(&text, &cursor, &lines, &camera);
+                        //     
+                        //     for (size_t i = 0; i < undo.size; ++i) {
+                        //         if (undo.text[i] == '\n') new_line(&text, &lines, &cursor);
+                        //         else insert_text(&text, undo.text[i], &cursor, &lines);
+                        //         // printf("> %i\n", undo.text[i]);
+                        //     }
 
-                            cursor.pos = undo.cursor_pos;
-                            cursor.column = undo.col;
-                            cursor.current_line = undo.line;
-                            //hori_off...
-                            lines.offset = undo.vert_off;
+                        //     cursor.pos = undo.cursor_pos;
+                        //     cursor.column = undo.col;
+                        //     cursor.current_line = undo.line;
+                        //     //hori_off...
+                        //     lines.offset = undo.vert_off;
 
-                            update_cursor_display(&editor);
+                        //     update_cursor_display(&editor);
 
-                            free(undo.text);
-                        } else if (IsKeyPressed(KEY_Y) && editor.stack_top_redo > 0) {
-                            push_undo(&editor, cursor, lines, (char *)text.buff);
-                            Change redo = editor.stack_r[--editor.stack_top_redo];
-                            printf("[redo]:: %s\n", redo.text);
+                        //     free(undo.text);
+                        // } else if (IsKeyPressed(KEY_Y) && editor.stack_top_redo > 0) {
+                        //     push_undo(&editor, cursor, lines);
+                        //     Change redo = editor.stack_r[--editor.stack_top_redo];
 
-                            editor_reset(&text, &cursor, &lines, &camera);
+                        //     editor_reset(&text, &cursor, &lines, &camera);
 
-                            for (size_t i = 0; i < strlen(redo.text); ++i) {
-                                if (redo.text[i] == '\n') new_line(&text, &lines, &cursor);
-                                else insert_text(&text, redo.text[i], &cursor, &lines);
-                            }
-                            cursor.pos = redo.cursor_pos;
-                            cursor.column = redo.col;
-                            cursor.current_line = redo.line;
-                            lines.offset = redo.vert_off;
-                            update_cursor_display(&editor);
-                            free(redo.text);
-                        }
+                        //     for (size_t i = 0; i < redo.size; ++i) {
+                        //         if (redo.text[i] == '\n') new_line(&text, &lines, &cursor);
+                        //         else insert_text(&text, redo.text[i], &cursor, &lines);
+                        //     }
+                        //     cursor.pos = redo.cursor_pos;
+                        //     cursor.column = redo.col;
+                        //     cursor.current_line = redo.line;
+                        //     lines.offset = redo.vert_off;
+                        //     update_cursor_display(&editor);
+                        //     free(redo.text);
+                        // }
                     }
                     if (IsKeyPressed(KEY_LEFT_SHIFT)) {
                         cursor.is_selecting = true;
@@ -347,14 +324,14 @@ int main(int argc, char **argv)
                 DrawTextCodepoint(font, text.buff[cursor.pos], editor.cursor_display, editor.font.baseSize, RBLACK);
             }
 
-            draw_selection(cursor, lines, text, font, font_measuring);
+            draw_selection(cursor, lines, font_measuring);
 
             //statusbar
-            const char *status_text = TextFormat("[%c] %s  %ix%i, %zu, :: %f", 
+            const char *status_text = TextFormat("[%c] %s  %ix%i, %zu", 
                                         mode_to_str(editor.mode),
                                         explorer.current_file, 
                                         (int)ScreenW, (int)ScreenH, 
-                                        cursor.column, editor.cursor_display.x);
+                                        cursor.column);
             Vector2 status_measure = MeasureTextEx(font, status_text, font.baseSize, RFONT_SPACING);
             Vector2 status_pos = {
                 camera.target.x + GW - status_measure.x - 10, 
@@ -368,16 +345,21 @@ int main(int argc, char **argv)
             if (editor.mode == FIND) {
                 //find-highlight
                 if (editor.result.np > 0) {
-                    Vector2 _m = MeasureTextEx(font, editor.search_promp, font.baseSize, RFONT_SPACING);
-                    DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, _m.x, _m.y, RORANGE);
-                    DrawTextEx(font, TextFormat("%s", editor.search_promp), editor.cursor_display, font.baseSize, RFONT_SPACING, RBLACK);
+                    int _m = (font_measuring.x + RFONT_SPACING) * editor.search_len;
+                    DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, _m, font_measuring.y, RORANGE);
+                    DrawTextCodepoints(font, editor.search_promp, editor.search_len, editor.cursor_display, font.baseSize, RFONT_SPACING, RBLACK);
                 }
                 //find-status
-                Vector2 find_pos = {
+                Vector2 symbol_pos = {
                     camera.target.x + 10, 
                     camera.target.y + GH - font_measuring.y - 10
                 };
-                DrawTextEx(font, TextFormat("> %s", editor.search_promp), find_pos, font.baseSize, RFONT_SPACING, RGRAY);
+                Vector2 find_pos = {
+                    symbol_pos.x + 10 + RFONT_SPACING,
+                    symbol_pos.y
+                };
+                DrawTextEx(font, "/", symbol_pos, font.baseSize, RFONT_SPACING, RGRAY);
+                DrawTextCodepoints(font, editor.search_promp, editor.search_len, find_pos, font.baseSize, RFONT_SPACING, RGRAY);
             }
 
             EndMode2D();

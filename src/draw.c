@@ -107,58 +107,27 @@ void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines
     }
 }
 
-Vector2 _measure_text_part(Text *text, Font font, size_t start, size_t range) {
-    if (range <= 0) {
-        Vector2 measurement_ = { 0, 0 };
-        return measurement_;
-    }
-    char part[range];
-    strncpy(part, (char *)text->buff+start, range);
-    part[range] = '\0';
-    Vector2 measurement = MeasureTextEx(font, part, font.baseSize, RFONT_SPACING);
-    return measurement;
-}
-
-void draw_selection(Cursor cursor, Lines lines, Text text, Font font, Vector2 font_measuring){
-    //selection
-    size_t select_range = cursor.selection_end - cursor.selection_begin;
-    size_t select_line_range = cursor.selection_line_end - cursor.selection_line_begin;
+void draw_selection(Cursor cursor, Lines lines, Vector2 font_measuring){
+    int select_range = cursor.selection_end - cursor.selection_begin;
+    if (select_range <= 0) return;
     Color select_color = { 255, 255, 255, 80 };
-    int _x, _w, _y, _h = font_measuring.y;
-    //one line selected
-    if (select_line_range == 0 && select_range > 0) {
-        size_t _plsize = cursor.selection_begin-lines.lines[cursor.current_line].start;
-        Vector2 _selection_l_measure = _measure_text_part(&text, font, lines.lines[cursor.current_line].start, _plsize);
-        Vector2 _selection_measure = _measure_text_part(&text, font, cursor.selection_begin, select_range);
-        _x = RTEXT_LEFT+(_selection_l_measure.x);
-        _w = _selection_measure.x;
-        _y = RTEXT_TOP+(font_measuring.y*cursor.current_line)+(RFONT_SPACING*cursor.current_line);
-        DrawRectangle(_x, _y, _w, _h, select_color);
-    }
-    else if (select_line_range > 0 && select_range > 0) {
-        for (size_t i = cursor.selection_line_begin; i <= cursor.selection_line_end; ++i) {
-            _y = RTEXT_TOP+(font_measuring.y * i) + (RFONT_SPACING * i);
-            if (i == cursor.selection_line_begin) { //first line
-                size_t _plsize = cursor.selection_begin-lines.lines[i].start;
-                Vector2 _selection_l_measure = _measure_text_part(&text, font, lines.lines[i].start, _plsize);
-                Vector2 _selection_measure = _measure_text_part(&text, font, cursor.selection_begin, lines.lines[i].end - cursor.selection_begin);
-                _x = RTEXT_LEFT+_selection_l_measure.x;
-                _w = _selection_measure.x;
-                DrawRectangle(_x, _y, _w, _h, select_color);
-            }
-            else if (i == cursor.selection_line_end) { //last line
-                Vector2 _selection_measure = _measure_text_part(&text, font, lines.lines[i].start, cursor.selection_end-lines.lines[i].start);
-                _x = RTEXT_LEFT;
-                _w = _selection_measure.x;
-                DrawRectangle(_x, _y, _w, _h, select_color);
-            }
-            else { //between lines
-                _x = RTEXT_LEFT;
-                size_t _range = lines.lines[i].end - lines.lines[i].start;
-                Vector2 _line_measure = _measure_text_part(&text, font, lines.lines[i].start, _range);
-                _w = _line_measure.x;
-                DrawRectangle(_x, _y, _w, _h, select_color);
-            }
+    int _range, _x, _w, _y, _h = font_measuring.y;
+    for (size_t i = cursor.selection_line_begin; i <= cursor.selection_line_end; ++i) {
+        if (i == cursor.selection_line_begin) { //first line
+            _x = RTEXT_LEFT + ((cursor.selection_begin - lines.lines[i].start) * (font_measuring.x + RFONT_SPACING));
+            if (i == cursor.selection_line_end) _range = cursor.selection_end - cursor.selection_begin;
+            else _range = lines.lines[i].end - cursor.selection_begin;
         }
+        else if (i == cursor.selection_line_end) { //last line
+            _x = RTEXT_LEFT;
+            _range = cursor.selection_end - lines.lines[i].start;
+        }
+        else { //between lines
+            _x = RTEXT_LEFT;
+            _range = lines.lines[i].end - lines.lines[i].start;
+        }
+        _y = RTEXT_TOP+(font_measuring.y * i) + (RFONT_SPACING * i);
+        _w = (font_measuring.x + RFONT_SPACING) * (_range);
+        DrawRectangle(_x, _y, _w, _h, select_color);
     }
 }

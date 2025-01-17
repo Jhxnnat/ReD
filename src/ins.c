@@ -39,18 +39,17 @@ void insert_text(Text *t, int c, Cursor *cu, Lines *lines) {
 
 void insert_text_from_file(const char *path, Text *text, Lines *lines, Cursor *cursor) {
     char *source = LoadFileText(path);
-    size_t len = TextLength(source);
-    for (size_t i = 0; i < len; ++i) {
-        if (source[i] == '\n') new_line(text, lines, cursor);
-        else if (source[i] == '\r') insert_text(text, ' ', cursor, lines);
-        else if (source[i] == '\t') {
-            insert_text(text, ' ', cursor, lines);
-            insert_text(text, ' ', cursor, lines);
+    int count;
+    int *_source = LoadCodepoints(source, &count);
+    for (int i = 0; i < count; ++i) {
+        if (_source[i] == 10) {
+            new_line(text, lines, cursor);
+        } else {
+            insert_text(text, _source[i], cursor, lines);
         }
-        else if (source[i] == '\0') break; //NOTE is this needed?
-        else insert_text(text, source[i], cursor, lines);
     }
     UnloadFileText(source);
+    UnloadCodepoints(_source);
 }
 
 void _delete_recalculate_lines(Cursor *c, Lines *l) {
@@ -177,36 +176,34 @@ void new_line(Text *text, Lines *lines, Cursor *c) {
 
 bool paste_text(Text *text, Cursor *cursor, Lines *lines) {
     const char *source = GetClipboardText();
-    const size_t len = strlen(source);
+    const int len = strlen(source);
     if (len == 0) return false;
-
-    for (size_t i = 0; i < len; ++i) {
-        if (source[i] == '\n') new_line(text, lines, cursor);
-        else if (source[i] == '\0') break;
-        else insert_text(text, source[i], cursor, lines);
+    int count;
+    int *_source = LoadCodepoints(source, &count);
+    for (int i = 0; i < count; ++i) {
+        insert_text(text, _source[i], cursor, lines);
     }
+    UnloadCodepoints(_source);
     return true;
 }
 
 void copy_text(Text *text, Cursor *cursor) {
-    const size_t range = cursor->selection_end - cursor->selection_begin;
+    const int range = cursor->selection_end - cursor->selection_begin;
     if (range <= 0) return;
-    char copied_text[range];
-    // strncpy(copied_text, (char *)text->buff + cursor->selection_begin, range);
-    copied_text[range] = '\0';
+    char *copied_text = LoadUTF8(text->buff + cursor->selection_begin, range);
     printf("copied_text: %s\n", copied_text);
     SetClipboardText(copied_text);
     cursor->selection_begin = cursor->pos;
     cursor->selection_end = cursor->pos;
     cursor->selection_line_begin = cursor->current_line;
     cursor->selection_line_end = cursor->current_line;
+    UnloadUTF8(copied_text);
 }
 
 bool cut_text(Text *text, Cursor *cursor, Lines *lines) {
-    size_t selection_range = cursor->selection_end - cursor->selection_begin; //NOTE be careful when begin > end, selection_range cound end up being a big num
-    if (selection_range == 0) return false;
-    char *_d = _delete_text(text, cursor, lines);
-    SetClipboardText(_d);
-    free(_d);
+    const int selection_range = cursor->selection_end - cursor->selection_begin;
+    if (selection_range <= 0) return false;
+    copy_text(text, cursor);
+    delete_text(text, cursor, lines);
     return true;
 }
