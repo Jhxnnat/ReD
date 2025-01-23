@@ -50,19 +50,6 @@ void free_lines(Lines *lines) {
     lines->size = 0;
 }
 
-// void _load_config(Config *config) {
-//     const char *_conf = LoadFileText("/home/jhxnnat/Dev/c/raytext/.config/config");
-//     int cursor = 0;
-//     char _c = _conf[cursor];
-//     while (_c != '\0') {
-//         switch(_c) {
-//             case 
-//         } 
-
-//         _c = _conf[++cursor];
-//     }
-// }
-
 void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int window_w, int window_h, bool explorer_open) {
     if (window_h <= 0 || window_w <= 0) {
         printf("negative windows haven't been invented yet\n");
@@ -74,6 +61,7 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
     editor->config.show_hightlight = true;
     editor->config.show_decorations = true;
     editor->config.font_file = "./assets/fonts/IosevkaTerm/IosevkaTermNerdFontMono-Regular.ttf";
+    //NOTE: only mono spaced fonts works correctly
 
     editor->font = LoadFontEx(editor->config.font_file, RFONT_SIZE, NULL, 250);
     if (!IsFontValid(editor->font)) {
@@ -82,7 +70,6 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
     editor->font_measuring = MeasureTextEx(editor->font, "M", editor->font.baseSize, RFONT_SPACING);
 
     editor->max_lines = ((window_h-RTEXT_TOP) / editor->font_measuring.y)-1;
-    // editor->max_lines -= 2; //some arbitrary offset 
     editor->hori_offset = 0;
     editor->cursor_display.x = 0;
     editor->cursor_display.y = 0;

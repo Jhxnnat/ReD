@@ -12,6 +12,8 @@
 #define DELAY 5
 #define DELAYPOLL 40
 
+#define UPDATEC update_cursor_display(e); update_cam(cam, e)
+
 void editor_reset(Text *text, Cursor *cursor, Lines *lines, Camera2D *camera) {
     memset(text->buff, 0, text->size); 
     text->size = 0;
@@ -113,13 +115,16 @@ void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer explorer) {
             //font resize
             case KEY_COMMA:
                 change_font_size(e, RFONT_SIZE-2);
-                update_cursor_display(e);
-                update_cam(cam, e);
+                UPDATEC;
             break;
             case KEY_PERIOD:
                 change_font_size(e, RFONT_SIZE+2);
-                update_cursor_display(e);
-                update_cam(cam, e);
+                UPDATEC;
+            break;
+            //word backspace
+            case KEY_BACKSPACE:
+                delete_word(e->text, e->cursor, e->lines);
+                UPDATEC;
             break;
         }
     } else {

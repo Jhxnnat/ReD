@@ -138,6 +138,15 @@ void delete_text(Text *t, Cursor *c, Lines *l) {
     selection_reset(c);
 }
 
+void delete_word(Text *t, Cursor *c, Lines *l) {
+    //' ' = 32, '\n' = 10, '\t' = 9
+    while (true) {
+        if (t->size < 1 || c->pos < 1) break;
+        delete_text(t,c,l);
+        int _c = t->buff[c->pos-1];
+        if (_c == ' ' || _c == '\n' || _c == '\t') break;
+    }
+}
 
 void resize_lines(Lines *lines) {
     // const size_t new_capacity = lines->capacity * 2;

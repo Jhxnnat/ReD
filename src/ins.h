@@ -5,6 +5,7 @@
 
 void insert_text(Text *t, int c, Cursor *cu, Lines *lines);
 void delete_text(Text *t, Cursor *c, Lines *lines);
+void delete_word(Text *t, Cursor *c, Lines *lines);
 void insert_text_from_file(const char *path, Text *text, Lines *lines, Cursor *cursor);
 
 void copy_text(Text *text, Cursor *cursor);
