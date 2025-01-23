@@ -6,6 +6,8 @@
 float ScreenW = 1000;
 float ScreenH = 600;
 
+int FontSize = 32;
+
 void init_text(Text *t, size_t size) {
     t->buff = malloc(size * sizeof(int));
     t->capacity = size;
@@ -48,22 +50,43 @@ void free_lines(Lines *lines) {
     lines->size = 0;
 }
 
-void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool explorer_open) {
+// void _load_config(Config *config) {
+//     const char *_conf = LoadFileText("/home/jhxnnat/Dev/c/raytext/.config/config");
+//     int cursor = 0;
+//     char _c = _conf[cursor];
+//     while (_c != '\0') {
+//         switch(_c) {
+//             case 
+//         } 
+
+//         _c = _conf[++cursor];
+//     }
+// }
+
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int window_w, int window_h, bool explorer_open) {
     if (window_h <= 0 || window_w <= 0) {
         printf("negative windows haven't been invented yet\n");
         exit(69);
     }
 
-    Vector2 font_measuring = MeasureTextEx(font, "M", font.baseSize, RFONT_SPACING);
-    editor->font_measuring = font_measuring;
-    editor->font = font;
+    editor->config.show_shader = false;
+    editor->config.shader_file = "./assets/shader/crt.glsl";
+    editor->config.show_hightlight = true;
+    editor->config.show_decorations = true;
+    editor->config.font_file = "./assets/fonts/IosevkaTerm/IosevkaTermNerdFontMono-Regular.ttf";
 
-    float font_height = font_measuring.y;
-    editor->max_lines = window_h / font_height;
-    editor->max_lines -= 4; //some arbitrary offset 
+    editor->font = LoadFontEx(editor->config.font_file, RFONT_SIZE, NULL, 250);
+    if (!IsFontValid(editor->font)) {
+        editor->font = GetFontDefault();
+    }
+    editor->font_measuring = MeasureTextEx(editor->font, "M", editor->font.baseSize, RFONT_SPACING);
+
+    editor->max_lines = ((window_h-RTEXT_TOP) / editor->font_measuring.y)-1;
+    // editor->max_lines -= 2; //some arbitrary offset 
     editor->hori_offset = 0;
     editor->cursor_display.x = 0;
     editor->cursor_display.y = 0;
+    editor->text_left_pos = (editor->font_measuring.x + RFONT_SPACING) * 4;
 
     editor->lines = lines;
     editor->text = text;
@@ -78,6 +101,8 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font 
 
     editor->stack_top = 0;
     editor->stack_top_redo = 0;
+
+
 }
 
 void push_undo(Editor *editor, Cursor c, Lines l) {
@@ -178,4 +203,17 @@ SearchResult kmp_search(Editor e, const int *word, int word_len) {
         }
     }
     return positions;
+}
+
+void change_font_size(Editor *editor, int amount) {
+    if (amount < 8 || amount > 48) return;
+    UnloadFont(editor->font);
+    RFONT_SIZE = amount;
+    editor->font = LoadFontEx(editor->config.font_file, RFONT_SIZE, NULL, 250);
+    if (!IsFontValid(editor->font)) {
+        editor->font = GetFontDefault();
+    }
+    editor->font_measuring = MeasureTextEx(editor->font, "M", editor->font.baseSize, RFONT_SPACING);
+    editor->text_left_pos = (editor->font_measuring.x + RFONT_SPACING) * 4;
+    editor->max_lines = ((GH - RTEXT_TOP) / editor->font_measuring.y)-1;
 }

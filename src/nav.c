@@ -68,8 +68,10 @@ void __selection_move_down(Cursor *cursor, size_t prev_pos) {
     }
 }
 
-void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
-    if (left) {
+void cursor_move_h(Cursor *cursor, Lines *lines, Text text, bool left) {
+    if (text.size < 1) return;
+
+    if (left && cursor->pos > 0) {
         if (cursor->column == 0 && cursor->current_line > 0) {
             cursor->current_line--;
             cursor->column = lines->lines[cursor->current_line].end-lines->lines[cursor->current_line].start-1;
@@ -78,19 +80,17 @@ void cursor_move_h(Cursor *cursor, Lines *lines, bool left) {
             cursor->pos--;
             cursor->column--;
         }
-
         __selection_move_left(cursor);
     } 
-    else {
-        if (cursor->pos == lines->lines[cursor->current_line].end-1 && cursor->current_line < lines->size-1) {
-            cursor->current_line++;
-            cursor->column = 0;
-            cursor->pos++;
+    else if (!left && cursor->pos < text.size) {
+        if (cursor->current_line < lines->size-1 && cursor->pos == lines->lines[cursor->current_line].end-1) {
+                cursor->current_line++;
+                cursor->column = 0;
+                cursor->pos++;
         } else {
             cursor->pos++;
             cursor->column++;
         }
-
         __selection_move_right(cursor);
     }
 
@@ -108,11 +108,14 @@ void cursor_move_v(Cursor *cursor, Lines *lines, int dir) {
     size_t current_line = cursor->current_line;
     size_t next_line_len = lines->lines[current_line].end - lines->lines[current_line].start;
 
-    if (cursor->column > next_line_len) {
-        cursor->column = next_line_len - 1;
-        cursor->pos = lines->lines[current_line].end-1;
+    if (next_line_len <= 1) {
+        cursor->column = 0;
+        cursor->pos = lines->lines[current_line].start;
     }
-    else {
+    else if (cursor->column > next_line_len)  {
+        cursor->column = next_line_len-1;
+        cursor->pos = lines->lines[current_line].end-1;
+    } else {
         cursor->pos = lines->lines[current_line].start + cursor->column;
     }
 
@@ -163,6 +166,6 @@ void cursor_move_end(Cursor *cursor, Lines *lines) {
 }
 
 void update_cursor_display(Editor *e) { //NOTE only works with monospaced fonts
-    e->cursor_display.x = RTEXT_LEFT + e->cursor->column * (e->font_measuring.x + RFONT_SPACING);
+    e->cursor_display.x = e->text_left_pos + e->cursor->column * (e->font_measuring.x + RFONT_SPACING);
     e->cursor_display.y = RTEXT_TOP + (e->font_measuring.y * (e->cursor->current_line)) + (RFONT_SPACING * e->cursor->current_line);
 }

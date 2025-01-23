@@ -23,8 +23,8 @@ void update_cam_offset_down(Cursor *cursor, Lines *lines, int max_lines){
 }
 
 //NOTE keep working on this
-void move_cam_left(Camera2D *camera, int cursor_x, int font_height) {
-    int cam_left = camera->target.x + RTEXT_LEFT + font_height;
+void move_cam_left(Camera2D *camera, int cursor_x, int font_height, int text_left_pos) {
+    int cam_left = camera->target.x + text_left_pos + font_height;
     if (cursor_x < cam_left) {
         camera->target.x -= cam_left - cursor_x;
         if (camera->target.x < 0) camera->target.x = 0; //hardcoded?
@@ -60,7 +60,7 @@ void update_cam(Camera2D *camera, Editor *editor) {
         editor->lines->offset -= (editor->lines->offset - editor->cursor->current_line);
     }
 
-    int cam_left = camera->target.x + RTEXT_LEFT + editor->font_measuring.y;
+    int cam_left = camera->target.x + editor->text_left_pos + editor->font_measuring.y;
     if (editor->cursor_display.x < cam_left) {
         camera->target.x -= cam_left - editor->cursor_display.x;
         if (camera->target.x < 0) camera->target.x = 0;

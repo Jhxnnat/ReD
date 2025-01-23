@@ -1,7 +1,6 @@
-# ReD is a (work in progress) simple retro looking text editor made with raylib
+# ReD is a (work in progress) simple text editor made with raylib
 
-Red stants for Retro eDitor, 
-Raylib eDitor and other coincidences are just coincidences.
+Red does not have any meaning, so Raylib eDitor and other coincidences are just coincidences.
 
 ![foto](./imagen2.png)
 

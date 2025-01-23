@@ -5,7 +5,7 @@
 #include "../raylib/include/raylib.h"
 #include "ds.h"
 
-void cursor_move_h(Cursor *cursor, Lines *lines, bool left);
+void cursor_move_h(Cursor *cursor, Lines *lines, Text text, bool left);
 void cursor_move_v(Cursor *cursor, Lines *lines, int dir);
 void cursor_move_sol(Cursor *cursor, Lines *lines);
 void cursor_move_eol(Cursor *cursor, Lines *lines);

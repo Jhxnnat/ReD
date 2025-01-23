@@ -7,13 +7,16 @@
 
 extern float ScreenW;
 extern float ScreenH;
+
+extern int FontSize;
+
 #define NAME "Retro eDitor - [0.0.2]"
 #define GW ScreenW
 #define GH ScreenH
 #define RTEXT_LEFT 72
 #define RTEXT_TOP 22
 #define RFONT_SPACING 2
-#define RFONT_SIZE 22
+#define RFONT_SIZE FontSize
 #define RBLACK (Color){ 29, 32, 33, 255 }
 #define RGRAY (Color){ 146, 131, 116, 255 }
 #define RWHITE (Color){ 242, 229, 188, 255 }
@@ -30,7 +33,6 @@ extern float ScreenH;
 #define STACK_MAX_SIZE 1024
 
 #define RKEY_ACTION KEY_LEFT_CONTROL
-#define ACTIVE_HIGHLIGHTING false
 
 typedef enum {
     WRITE,
@@ -90,6 +92,14 @@ typedef struct {
 } KmpTable;
 
 typedef struct {
+    int show_shader;
+    int show_hightlight;
+    int show_decorations;
+    char *font_file;
+    char *shader_file;
+} Config;
+
+typedef struct {
     Cursor *cursor;
     Lines *lines;
     Text *text;
@@ -100,6 +110,7 @@ typedef struct {
     Vector2 cursor_display;
     int max_lines;
     int hori_offset;
+    int text_left_pos;
 
     bool explorer_open;
     EditorMode mode;
@@ -114,6 +125,8 @@ typedef struct {
     Change stack_r[STACK_MAX_SIZE];
     int stack_top;
     int stack_top_redo;
+
+    Config config;
 } Editor;
 
 void init_text(Text *t, size_t size);
@@ -121,11 +134,12 @@ void free_text(Text *t);
 void init_cursor(Cursor *c);
 void init_lines(Lines *lines, size_t initial_capacity);
 void free_lines(Lines *lines);
-void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, Font font, int window_w, int window_h, bool explorer_open);
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int window_w, int window_h, bool explorer_open);
 void push_undo(Editor *editor, Cursor c, Lines l);
 void push_redo(Editor *editor, Cursor c, Lines l);
 void free_undo(Editor *editor);
 void free_redo(Editor *editor);
+void change_font_size(Editor *editor, int amount);
 
 //KMP Search: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
 //from: https://rosettacode.org/wiki/Knuth-Morris-Pratt_string_search#Python
