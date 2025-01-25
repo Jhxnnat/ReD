@@ -12,9 +12,13 @@ void explorer_init(Explorer *e) {
 
 void explorer_load_path(Explorer *e, const char *path) {
     if (strcmp(e->path, path) != 0) {
-        e->filepath_list = LoadDirectoryFiles(path);
+        const char *_p = path;
+        if (strcmp(path, "./") == 0) {
+            _p = ".";
+        }
+        e->filepath_list = LoadDirectoryFiles(_p);
         e->should_free = true;
-        strcpy(e->path, path);
+        strcpy(e->path, _p);
     }
     e->cursor = 0;
 }
@@ -27,7 +31,7 @@ void explorer_load_prevpath(Explorer *e) {
 }
 
 void explorer_draw(Explorer *e, Font font, Vector2 font_measuring) {
-    DrawTextEx(font, "../", (Vector2){20, 20 - (20 * e->y_offset)}, font.baseSize, RFONT_SPACING, RPURPLE);
+    if (e->y_offset < 1) DrawTextEx(font, "../", (Vector2){20, 20 - (20 * e->y_offset)}, font.baseSize, RFONT_SPACING, RPURPLE);
     if (e->cursor == -1) {
         DrawRectangle(20, 20 - (20 * e->y_offset), GW-40, font_measuring.y, (Color){255, 255, 255, 100});
     }
@@ -53,4 +57,8 @@ void explorer_input(Explorer *e) {
         e->cursor++;
         if (e->cursor > e->lines_amount) e->y_offset++;
     }
+}
+
+int explorer_cacl_lines(float font_measuring_y) {
+    return (int)GH/(font_measuring_y+20);
 }

@@ -1,6 +1,5 @@
 # get track of stuff to feel better
 
-## Editor itself
 - [x] soporte para el idioma español
 - [x] backspace & enter keyhold
 - [x] arrow navigation
@@ -39,14 +38,12 @@
     - [x] text lines
     - [ ] horizontally?
 - [ ] write and test more and more and more and more? (optional)
-
 - [x] resizable window
-
-- [ ] Error management is needed in some functions
-
-- [ ] fonts
-    - [ ] use system fonts
-    - [ ] dynamic font size
+- [x] fonts
+    - [x] dynamic font size
+- [ ] being able to manipulate files and directories (create, delete, rename)
+- [ ] being able to go open arbitrary paths
+- [ ] Error management
 
 ## funny/interesting
 - [x] simple syntax highlighting (C)
@@ -54,13 +51,12 @@
 - [x] file navigation?
     - [ ] path nomalization
 - [x] crt-shader
-    - [x] rounded corners
 - [ ] undo/redo (REFACTOR)
-    - [ ] find nice way to manage push
-- [ ] incremental text search (REFACTOR)
+    - [ ] find nice way to manage changes
+- [x] incremental text search (REFACTOR)
 
 ## pain
-- [ ] windows support 
+- [no, use wsl] windows support 
 
 ## fancy features
 - [ ] sort of vim/emacs motions

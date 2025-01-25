@@ -95,8 +95,8 @@ typedef struct {
     int show_shader;
     int show_hightlight;
     int show_decorations;
-    char *font_file;
-    char *shader_file;
+    char font_file[1024];
+    char shader_file[1024];
 } Config;
 
 typedef struct {
@@ -112,6 +112,7 @@ typedef struct {
     int hori_offset;
     int text_left_pos;
 
+    const char *appdir;
     bool explorer_open;
     EditorMode mode;
 
@@ -134,7 +135,7 @@ void free_text(Text *t);
 void init_cursor(Cursor *c);
 void init_lines(Lines *lines, size_t initial_capacity);
 void free_lines(Lines *lines);
-void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int window_w, int window_h, bool explorer_open);
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int window_w, int window_h);
 void push_undo(Editor *editor, Cursor c, Lines l);
 void push_redo(Editor *editor, Cursor c, Lines l);
 void free_undo(Editor *editor);

@@ -25,5 +25,6 @@ void explorer_load_prevpath(Explorer *e);
 void explorer_draw(Explorer *e, Font font, Vector2 font_measuring);
 void explorer_free(Explorer *e);
 void explorer_input(Explorer *e);
+int explorer_cacl_lines(float font_measuring_y);
 
 #endif // !EXPLORER_H

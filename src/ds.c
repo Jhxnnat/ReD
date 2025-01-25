@@ -6,7 +6,7 @@
 float ScreenW = 1000;
 float ScreenH = 600;
 
-int FontSize = 32;
+int FontSize = 38;
 
 void init_text(Text *t, size_t size) {
     t->buff = malloc(size * sizeof(int));
@@ -50,18 +50,20 @@ void free_lines(Lines *lines) {
     lines->size = 0;
 }
 
-void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int window_w, int window_h, bool explorer_open) {
+void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int window_w, int window_h) {
     if (window_h <= 0 || window_w <= 0) {
         printf("negative windows haven't been invented yet\n");
         exit(69);
     }
 
+    editor->appdir = GetApplicationDirectory();
+    sprintf(editor->config.shader_file, "%s/%s", editor->appdir, "assets/shader/crt.glsl");
+    sprintf(editor->config.font_file, "%s/%s", editor->appdir, "assets/fonts/IosevkaTerm/IosevkaTermNerdFontMono-Regular.ttf");
+    //NOTE: only mono spaced fonts works correctly
+
     editor->config.show_shader = false;
-    editor->config.shader_file = "./assets/shader/crt.glsl";
     editor->config.show_hightlight = true;
     editor->config.show_decorations = true;
-    editor->config.font_file = "./assets/fonts/IosevkaTerm/IosevkaTermNerdFontMono-Regular.ttf";
-    //NOTE: only mono spaced fonts works correctly
 
     editor->font = LoadFontEx(editor->config.font_file, RFONT_SIZE, NULL, 250);
     if (!IsFontValid(editor->font)) {
@@ -79,7 +81,6 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
     editor->text = text;
     editor->cursor = cursor;
 
-    editor->explorer_open = explorer_open;
     editor->mode = WRITE;
 
     editor->search_len = 0;

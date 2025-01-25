@@ -10,9 +10,9 @@
 #include "explorer.h"
 
 #define DELAY 5
-#define DELAYPOLL 40
+#define DELAYINIT 40
 
-#define UPDATEC update_cursor_display(e); update_cam(cam, e)
+#define UPDATEC(editor, camera) do { update_cursor_display(editor); update_cam(camera, editor); } while (0);
 
 void editor_reset(Text *text, Cursor *cursor, Lines *lines, Camera2D *camera) {
     memset(text->buff, 0, text->size); 
@@ -43,14 +43,13 @@ void result_update(Editor *editor, Camera2D *camera){
     update_cam(camera, editor);
 }
 
-void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer explorer) {
+void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer *explorer) {
     if (IsKeyDown(RKEY_ACTION)) {
         switch (key) {
             //move cursor
             case KEY_I:
                 cursor_move_v(e->cursor, e->lines, -1);
-                update_cursor_display(e);
-                update_cam(cam, e);
+                UPDATEC(e, cam);
             break;
             case KEY_J:
                 cursor_move_h(e->cursor, e->lines, *e->text, true);
@@ -60,8 +59,7 @@ void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer explorer) {
             break;
             case KEY_K:
                 cursor_move_v(e->cursor, e->lines, 1);
-                update_cursor_display(e);
-                update_cam(cam, e);
+                UPDATEC(e, cam);
             break;
             case KEY_L:
                 cursor_move_h(e->cursor, e->lines, *e->text, false);
@@ -81,8 +79,7 @@ void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer explorer) {
             break;
             case KEY_S:
                 cursor_move_end(e->cursor, e->lines);
-                update_cursor_display(e);
-                update_cam(cam, e);
+                UPDATEC(e, cam);
             break;
             case KEY_D:
                 cursor_move_eol(e->cursor, e->lines);
@@ -93,39 +90,30 @@ void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer explorer) {
             case KEY_C: copy_text(e->text, e->cursor); break;
             case KEY_V: 
                 if (paste_text(e->text, e->cursor, e->lines)) {
-                    update_cursor_display(e);
-                    update_cam(cam, e);
+                    UPDATEC(e, cam);
                 }
             break;
             case KEY_X:
                 if (cut_text(e->text, e->cursor, e->lines)) {
-                    update_cursor_display(e);
-                    update_cam(cam, e);
+                    UPDATEC(e, cam);
                 }
             break;
             //other actions
             case KEY_G:
-                if (strlen(explorer.current_file)) {
+                if (strlen(explorer->current_file)) {
                     char *_s = LoadUTF8(e->text->buff, e->text->size);
-                    SaveFileText(explorer.current_file, _s);
+                    SaveFileText(explorer->current_file, _s);
                     UnloadUTF8(_s);
                 }
             break;
             case KEY_F: e->mode = FIND; break;
-            //font resize
-            case KEY_COMMA:
-                change_font_size(e, RFONT_SIZE-2);
-                UPDATEC;
-            break;
-            case KEY_PERIOD:
-                change_font_size(e, RFONT_SIZE+2);
-                UPDATEC;
-            break;
             //word backspace
             case KEY_BACKSPACE:
                 delete_word(e->text, e->cursor, e->lines);
-                UPDATEC;
+                UPDATEC(e, cam);
             break;
+            //toggle highlight
+            case KEY_H: e->config.show_hightlight = !e->config.show_hightlight; break;
         }
     } else {
         switch (key) {
@@ -181,7 +169,6 @@ int main(int argc, char **argv)
     Editor editor;
     Explorer explorer;
     explorer_init(&explorer);
-    bool start_explorer_open;
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(GW, GH, NAME);
@@ -189,10 +176,13 @@ int main(int argc, char **argv)
     SetExitKey(0);
     SetTargetFPS(60);
 
+    init_editor(&editor, &cursor, &lines, &text, GW, GH); //needs to be before InitWindow();
+    explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
 
     if (argc == 1) {
-        explorer_load_path(&explorer, ".");
-        start_explorer_open = true;
+        const char *working_dir = GetWorkingDirectory();
+        explorer_load_path(&explorer, working_dir);
+        editor.explorer_open = true;
     }
     else if (argc >= 2) {
         const char *path = argv[1];
@@ -204,22 +194,18 @@ int main(int argc, char **argv)
         if (IsPathFile(path)) {
             insert_text_from_file(path, &text, &lines, &cursor);
             cursor_move_start(&cursor);
-            start_explorer_open = true;
-
             const char *directory = GetDirectoryPath(path);
             explorer_load_path(&explorer, directory);
+            editor.explorer_open = true;
         }
         else {
-          explorer_load_path(&explorer, path);
-          start_explorer_open = false;
+            explorer_load_path(&explorer, path);
+            editor.explorer_open = false;
         }
     }
 
-    init_editor(&editor, &cursor, &lines, &text, GW, GH, start_explorer_open);
-    explorer.lines_amount = (GH/editor.font_measuring.y)-4;
-
     update_cursor_display(&editor);
-    push_undo(&editor, cursor, lines);
+    // push_undo(&editor, cursor, lines);
 
     Shader crt = LoadShader(0, editor.config.shader_file);
     float sh_rh = GetShaderLocation(crt, "renderHeight");
@@ -300,36 +286,29 @@ int main(int argc, char **argv)
                         key = GetCharPressed();
                     }
 
-                    // int _key = get_key();
-                    // keyboard_action(_key, &editor, &camera, explorer);
+                    // Repeat actions when keeping a key pressed
                     if (_key == 0) {
                         _key = get_key();
                     }
                     if (key_auto == 0 && _key > 0 && time_pressing == 0) {
-                        // printf("[once]: key pressed: %i\n", _key);
-                        keyboard_action(_key, &editor, &camera, explorer);
+                        keyboard_action(_key, &editor, &camera, &explorer);
                     } 
                     if (_key > 0 && key_auto == 1) {
                         time_delay++;
                         if (time_delay == DELAY) {
                             time_delay = 0;
-                            // printf("[auto]: key pressed: %i\n", _key);
-                            keyboard_action(_key, &editor, &camera, explorer);
+                            keyboard_action(_key, &editor, &camera, &explorer);
                         }
-
                         int __key__ = get_key();
-                        if (__key__ > 0 && __key__ != _key) {
-                            _key = __key__;
-                        }
+                        if (__key__ > 0 && __key__ != _key) { _key = __key__; }
                     } 
                     if (IsKeyUp(_key)) {
-                        // printf("[reset]: key %i\n", _key);
                         time_pressing = 0;
                         _key = 0;
                         key_auto = 0;
                     } else if (IsKeyDown(_key)) {
                         time_pressing++;
-                        if (time_pressing > DELAYPOLL) {
+                        if (time_pressing > DELAYINIT) {
                             time_pressing = 0;
                             key_auto = 1;
                         }
@@ -422,6 +401,7 @@ int main(int argc, char **argv)
                 explorer_load_prevpath(&explorer);
             }
             else if (IsKeyReleased(KEY_ENTER) && explorer.cursor > -1) {
+                explorer.y_offset = 0;
                 char *selected_path = explorer.filepath_list.paths[explorer.cursor];
                 if (IsPathFile(selected_path) && FileExists(selected_path)) {
                     strcpy(explorer.current_file, selected_path);
@@ -440,9 +420,24 @@ int main(int argc, char **argv)
                 DrawRectangle(0, 0, GW, GH, RBLACK);
                 explorer_draw(&explorer, editor.font, editor.font_measuring);
             EndTextureMode();
-            BeginShaderMode(crt);
+
+            if (editor.config.show_shader) {
+                BeginShaderMode(crt);
                 DrawTextureRec(tex.texture, (Rectangle){0,0,tex.texture.width,-tex.texture.height}, (Vector2){0,0}, WHITE);
-            EndShaderMode();
+                EndShaderMode();
+            } else DrawTextureRec(tex.texture, (Rectangle){0,0,tex.texture.width,-tex.texture.height}, (Vector2){0,0}, WHITE);
+        }
+
+        // global binds
+        //font resize
+        if (IsKeyPressed(KEY_COMMA) && IsKeyDown(RKEY_ACTION)) {
+            change_font_size(&editor, RFONT_SIZE-2);
+            explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
+            UPDATEC(&editor, &camera);
+        } else if (IsKeyPressed(KEY_PERIOD) && IsKeyDown(RKEY_ACTION)) {
+            change_font_size(&editor, RFONT_SIZE+2);
+            explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
+            UPDATEC(&editor, &camera);
         }
 
         //debug purpose   
