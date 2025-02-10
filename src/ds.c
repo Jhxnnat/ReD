@@ -6,7 +6,7 @@
 float ScreenW = 1000;
 float ScreenH = 600;
 
-int FontSize = 38;
+int FontSize = 24;
 
 void init_text(Text *t, size_t size) {
     t->buff = malloc(size * sizeof(int));
@@ -71,11 +71,10 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
     }
     editor->font_measuring = MeasureTextEx(editor->font, "M", editor->font.baseSize, RFONT_SPACING);
 
-    editor->max_lines = ((window_h-RTEXT_TOP) / editor->font_measuring.y)-1;
     editor->hori_offset = 0;
     editor->cursor_display.x = 0;
     editor->cursor_display.y = 0;
-    editor->text_left_pos = (editor->font_measuring.x + RFONT_SPACING) * 4;
+    editor_calc_lines(editor);
 
     editor->lines = lines;
     editor->text = text;
@@ -86,63 +85,6 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
     editor->search_len = 0;
     editor->result_pos = -1;
     editor->result_line = -1;
-
-    editor->stack_top = 0;
-    editor->stack_top_redo = 0;
-
-
-}
-
-void push_undo(Editor *editor, Cursor c, Lines l) {
-    if (editor->stack_top >= STACK_MAX_SIZE) {
-        printf("[stack] full\n");
-        return;
-    }
-    size_t text_size = editor->text->size;
-    editor->stack[editor->stack_top].size = text_size;
-    editor->stack[editor->stack_top].text = malloc(text_size * sizeof(int));
-    for (size_t i = 0; i < text_size; ++i) {
-        editor->stack[editor->stack_top].text[i] = editor->text->buff[i];
-    }
-    editor->stack[editor->stack_top].cursor_pos = c.pos;
-    editor->stack[editor->stack_top].col = c.column;
-    editor->stack[editor->stack_top].line = c.current_line;
-    // editor->stack[editor->stack_top].hori_off = editor->hori_offset;
-    editor->stack[editor->stack_top].vert_off = l.offset;
-
-    editor->stack_top++;
-}
-
-void push_redo(Editor *editor, Cursor c, Lines l) {
-    if (editor->stack_top_redo >= STACK_MAX_SIZE) {
-        printf("[stack] full!\n");
-        return;
-    }
-    size_t text_size = editor->text->size;
-    editor->stack_r[editor->stack_top_redo].size = text_size;
-    editor->stack_r[editor->stack_top_redo].text = malloc(text_size * sizeof(int));
-    for (size_t i = 0; i < text_size; ++i) {
-        editor->stack_r[editor->stack_top_redo].text[i] = editor->text->buff[i];
-    }
-    editor->stack_r[editor->stack_top_redo].cursor_pos = c.pos;
-    editor->stack_r[editor->stack_top_redo].col = c.column;
-    editor->stack_r[editor->stack_top_redo].line = c.current_line;
-    // editor->stack_r[editor->stack_top_redo].hori_off = editor->hori_offset;
-    editor->stack_r[editor->stack_top_redo].vert_off = l.offset;
-
-    editor->stack_top_redo++;
-}
-
-void free_undo(Editor *editor) {
-    for (int i = 0; i < editor->stack_top; ++i) {
-        free(editor->stack[i].text);
-    }
-}
-
-void free_redo(Editor *editor) {
-    for (int i = 0; i < editor->stack_top_redo; ++i) {
-        free(editor->stack[i].text);
-    }
 }
 
 KmpTable __kmp_table(const int *word, int word_len) {
@@ -165,6 +107,8 @@ KmpTable __kmp_table(const int *word, int word_len) {
     return T;
 }
 
+//KMP Search: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
+//from: https://rosettacode.org/wiki/Knuth-Morris-Pratt_string_search#Python
 SearchResult kmp_search(Editor e, const int *word, int word_len) {
     int textpos = 0, wordpos = 0;
     SearchResult positions = { .np = 0 };
@@ -193,6 +137,12 @@ SearchResult kmp_search(Editor e, const int *word, int word_len) {
     return positions;
 }
 
+void editor_calc_lines(Editor *editor) {
+    editor->text_left_pos = (editor->font_measuring.x + RFONT_SPACING) * 4;
+    int _h = editor->font_measuring.y + (RFONT_SPACING * 2);
+    editor->max_lines = (int)((GH - RTEXT_TOP - _h) / editor->font_measuring.y);
+}
+
 void change_font_size(Editor *editor, int amount) {
     if (amount < 8 || amount > 48) return;
     UnloadFont(editor->font);
@@ -202,6 +152,4 @@ void change_font_size(Editor *editor, int amount) {
         editor->font = GetFontDefault();
     }
     editor->font_measuring = MeasureTextEx(editor->font, "M", editor->font.baseSize, RFONT_SPACING);
-    editor->text_left_pos = (editor->font_measuring.x + RFONT_SPACING) * 4;
-    editor->max_lines = ((GH - RTEXT_TOP) / editor->font_measuring.y)-1;
 }

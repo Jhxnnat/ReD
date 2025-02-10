@@ -52,6 +52,7 @@ void move_cam_end(Camera2D *camera, Lines *lines, int max_lines) {
 }
 
 void update_cam(Camera2D *camera, Editor *editor) {
+    //NOTE 2 is a magic number, updating camera vertically works better with it, (just an offset)
     size_t range = editor->lines->offset + editor->max_lines - 2;
     if (editor->cursor->current_line > range) {
         editor->lines->offset += editor->cursor->current_line - range;

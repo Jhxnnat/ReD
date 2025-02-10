@@ -36,7 +36,7 @@
 - [x] draw optimization
     - [x] line num
     - [x] text lines
-    - [ ] horizontally?
+    - [ ] horizontally
 - [ ] write and test more and more and more and more? (optional)
 - [x] resizable window
 - [x] fonts
@@ -44,16 +44,20 @@
 - [ ] being able to manipulate files and directories (create, delete, rename)
 - [ ] being able to go open arbitrary paths
 - [ ] Error management
+- [ ] config.h
+- [ ] embed default font
 
 ## funny/interesting
-- [x] simple syntax highlighting (C)
+- [x] simple syntax highlighting
+    - [ ] python mode
     - [ ] highlighting single quotes strings
 - [x] file navigation?
     - [ ] path nomalization
 - [x] crt-shader
 - [ ] undo/redo (REFACTOR)
     - [ ] find nice way to manage changes
-- [x] incremental text search (REFACTOR)
+- [x] incremental text search
+    - [ ] allow finding backwards
 
 ## pain
 - [no, use wsl] windows support 
@@ -67,3 +71,4 @@
 - [ ] LSP & related stuff
 - [ ] api (scripting)
 - [ ] code autocompletition
+- [ ] whatever fancy stuff

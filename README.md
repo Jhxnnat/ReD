@@ -1,6 +1,6 @@
 # ReD is a (work in progress) simple text editor made with raylib
 
-Red does not have any real meaning. Raylib eDitor and others are just coincidences.
+Red does not have any real meaning (Raylib eDitor and others are just coincidences).
 
 ![foto](./imagen2.png)
 

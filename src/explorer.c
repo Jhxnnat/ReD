@@ -8,6 +8,8 @@ void explorer_init(Explorer *e) {
     e->cursor = 0;
     e->should_free = false;
     e->y_offset = 0;
+    e->mode = NORMAL;
+    e->buff_cursor = 0;
 }
 
 void explorer_load_path(Explorer *e, const char *path) {
@@ -18,9 +20,10 @@ void explorer_load_path(Explorer *e, const char *path) {
         }
         e->filepath_list = LoadDirectoryFiles(_p);
         e->should_free = true;
-        strcpy(e->path, _p);
+        strcpy(e->path, _p); //WARNING, TODO: use strncpy();
     }
     e->cursor = 0;
+    printf("[loaded] explorer_load_path...\n");
 }
 
 void explorer_load_prevpath(Explorer *e) {

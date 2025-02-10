@@ -89,12 +89,12 @@ void draw_text_optimized(Editor e, Vector2 position, Color color) {
     DrawTextCodepoints(e.font, e.text->buff+text_start, text_end - text_start, newpos, e.font.baseSize, RFONT_SPACING, color);
 }
 
-void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines lines, int text_left_pos){
-    size_t max_lines = (GH/font_measuring.y) + lines.offset;
-    if (max_lines > lines.size + 1) { max_lines = lines.size + 1; } 
-    size_t top = lines.offset;
+void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines lines, int text_left_pos, int max_lines){
+    size_t max = max_lines + lines.offset;
+    if (max > lines.size + 1) { max = lines.size + 1; } 
+    size_t top = lines.offset + 1;
 
-    for (size_t i = top; i < max_lines; ++i) {
+    for (size_t i = top; i < max; ++i) {
         const char *t = TextFormat("%d", i);
         Vector2 _meassure_t = MeasureTextEx(font, t, font.baseSize, RFONT_SPACING);
         Vector2 pos = {
@@ -129,3 +129,14 @@ void draw_selection(Cursor cursor, Lines lines, Vector2 font_measuring, int text
         DrawRectangle(_x, _y, _w, _h, select_color);
     }
 } //TODO optimize drawing
+
+void draw_status(const char *text, Font font, Vector2 font_measuring, Color color, Color outline, Color background) {
+    int h = font_measuring.y + (RFONT_SPACING * 2);
+    Vector2 pos = { 0, GH - h }; //TODO store this position so it can be used in other places
+    DrawRectangle(pos.x, pos.y, GW, h, background);
+    DrawLine(pos.x, pos.y, GW, GH - h, outline);
+    DrawLine(pos.x, pos.y - 1, GW, GH - h - 1, outline);
+    
+    Vector2 tpos = { pos.x + RFONT_SPACING, pos.y + RFONT_SPACING };
+    DrawTextEx(font, text, tpos, font.baseSize, RFONT_SPACING, color);
+}

@@ -9,8 +9,8 @@
 #include "draw.h"
 #include "explorer.h"
 
-#define DELAY 5
-#define DELAYINIT 40
+#define DELAY 2
+#define DELAYINIT 30
 
 #define UPDATEC(editor, camera) do { update_cursor_display(editor); update_cam(camera, editor); } while (0);
 
@@ -33,6 +33,25 @@ char mode_to_str(EditorMode mode) {
         case FIND: return 'F';
     }
     return '?';
+}
+
+void capture_input_simple(int *buffer, int *cursor, int max_len) {
+    int _key = GetCharPressed();
+    while (_key > 0 && *cursor < max_len) {
+        buffer[*cursor] = _key;
+        *cursor += 1;
+        _key = GetCharPressed();
+    }
+    if (IsKeyPressed(KEY_BACKSPACE) && *cursor > 0) {
+        *cursor -= 1;
+        buffer[*cursor] = 0;
+    }
+}
+
+bool check_if_dir(char *filename, int len) {
+    bool is = false;
+    if (filename[len-1] == '/') is = true;
+    return is;
 }
 
 void result_update(Editor *editor, Camera2D *camera){
@@ -176,7 +195,7 @@ int main(int argc, char **argv)
     SetExitKey(0);
     SetTargetFPS(60);
 
-    init_editor(&editor, &cursor, &lines, &text, GW, GH); //needs to be before InitWindow();
+    init_editor(&editor, &cursor, &lines, &text, GW, GH); //needs to be after InitWindow();
     explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
 
     if (argc == 1) {
@@ -187,7 +206,7 @@ int main(int argc, char **argv)
     else if (argc >= 2) {
         const char *path = argv[1];
         if (!DirectoryExists(path) && !FileExists(path)) {
-            printf("You may provide a valid file path of directory path\n");
+            printf("File of directory does not exists\n");
             exit(69);
         }
         
@@ -196,16 +215,16 @@ int main(int argc, char **argv)
             cursor_move_start(&cursor);
             const char *directory = GetDirectoryPath(path);
             explorer_load_path(&explorer, directory);
-            editor.explorer_open = true;
+            strcpy(explorer.current_file, path);
+            editor.explorer_open = false;
         }
         else {
             explorer_load_path(&explorer, path);
-            editor.explorer_open = false;
+            editor.explorer_open = true;
         }
     }
 
     update_cursor_display(&editor);
-    // push_undo(&editor, cursor, lines);
 
     Shader crt = LoadShader(0, editor.config.shader_file);
     float sh_rh = GetShaderLocation(crt, "renderHeight");
@@ -214,20 +233,21 @@ int main(int argc, char **argv)
     RenderTexture2D tex = LoadRenderTexture(GW, GH);
 
     //key poll
-    int time_pressing = 0;
-    int time_delay = 0;
+    float time_pressing = 0.0f;
+    float time_delay = 0.0f;
     int _key = 0;
     int key_auto = 0;
 
     while (!WindowShouldClose()) {
-        if (IsKeyPressed(KEY_ESCAPE) && editor.mode != FIND) {
-            editor.explorer_open = !editor.explorer_open;
-        }
-
         BeginDrawing();
         ClearBackground(BLACK);
 
-        if (editor.explorer_open) {
+        if (!editor.explorer_open) {
+            // Open explorer
+            if (IsKeyPressed(KEY_ESCAPE) && editor.mode != FIND) {
+                editor.explorer_open = true;
+            }
+
             switch(editor.mode) {
                 case FIND: {
                     static int __pos = -1;
@@ -262,7 +282,7 @@ int main(int argc, char **argv)
                             update_cursor_display(&editor);
                         }
                     }
-                    if (__pos > -1 && IsKeyDown(RKEY_ACTION) && IsKeyPressed(KEY_N)) {
+                    if (__pos > -1 && IsKeyDown(RKEY_ACTION) && IsKeyPressed(KEY_ENTER)) {
                         if (__pos == editor.result.np) { 
                             __pos = 1;
                             editor.result_pos = editor.result.p[0];
@@ -287,6 +307,7 @@ int main(int argc, char **argv)
                     }
 
                     // Repeat actions when keeping a key pressed
+                    float delta = 60 * GetFrameTime();
                     if (_key == 0) {
                         _key = get_key();
                     }
@@ -294,9 +315,9 @@ int main(int argc, char **argv)
                         keyboard_action(_key, &editor, &camera, &explorer);
                     } 
                     if (_key > 0 && key_auto == 1) {
-                        time_delay++;
-                        if (time_delay == DELAY) {
-                            time_delay = 0;
+                        time_delay += delta;
+                        if (time_delay > DELAY) {
+                            time_delay = 0.0f;
                             keyboard_action(_key, &editor, &camera, &explorer);
                         }
                         int __key__ = get_key();
@@ -307,13 +328,12 @@ int main(int argc, char **argv)
                         _key = 0;
                         key_auto = 0;
                     } else if (IsKeyDown(_key)) {
-                        time_pressing++;
+                        time_pressing += delta;
                         if (time_pressing > DELAYINIT) {
-                            time_pressing = 0;
+                            time_pressing = 0.0f;
                             key_auto = 1;
                         }
                     }
-
                     break;
                 }
             }
@@ -341,28 +361,10 @@ int main(int argc, char **argv)
                 draw_text_optimized(editor, (Vector2){ editor.text_left_pos, RTEXT_TOP }, RWHITE);
             }
 
-            DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, editor.font_measuring.x, editor.font_measuring.y, RWHITE);
-            if (text.buff[cursor.pos] != '\n' && text.size > cursor.pos) {
-                DrawTextCodepoint(editor.font, text.buff[cursor.pos], editor.cursor_display, editor.font.baseSize, RBLACK);
-            }
-
             draw_selection(cursor, lines, editor.font_measuring, editor.text_left_pos);
 
-            //statusbar
-            const char *status_text = TextFormat("[%c] %s  %ix%i, %zu", 
-                                        mode_to_str(editor.mode),
-                                        explorer.current_file, 
-                                        (int)ScreenW, (int)ScreenH, 
-                                        cursor.column);
-            Vector2 status_measure = MeasureTextEx(editor.font, status_text, editor.font.baseSize, RFONT_SPACING);
-            Vector2 status_pos = {
-                camera.target.x + GW - status_measure.x - 10, 
-                camera.target.y + GH - editor.font_measuring.y - 10
-            };
-            DrawTextEx(editor.font, status_text, status_pos, editor.font.baseSize, RFONT_SPACING, RGRAY);
-
             DrawRectangle(camera.target.x, camera.target.y, editor.text_left_pos - 3, GH, RBLACK);
-            draw_line_numbers(camera, editor.font, editor.font_measuring, lines, editor.text_left_pos);
+            draw_line_numbers(camera, editor.font, editor.font_measuring, lines, editor.text_left_pos, editor.max_lines);
 
             if (editor.mode == FIND) {
                 //find-highlight
@@ -384,7 +386,20 @@ int main(int argc, char **argv)
                 DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, find_pos, editor.font.baseSize, RFONT_SPACING, RGRAY);
             }
 
+            //draw cursor
+            DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, editor.font_measuring.x, editor.font_measuring.y, RWHITE);
+            if (text.buff[cursor.pos] != '\n' && text.size > cursor.pos) {
+                DrawTextCodepoint(editor.font, text.buff[cursor.pos], editor.cursor_display, editor.font.baseSize, RBLACK);
+            }
+
             EndMode2D();
+
+            //status bar (outside cam drawing to be able to use global coord to draw)
+            if (editor.mode == WRITE) {
+                const char *status_text = TextFormat(" %d | \"%s\"", cursor.pos, explorer.current_file);
+                draw_status(status_text, editor.font, editor.font_measuring, RGRAY, RGRAY, RBLACK);
+            }
+
             EndTextureMode();
 
             if (editor.config.show_shader) {
@@ -396,29 +411,90 @@ int main(int argc, char **argv)
             }
         } 
         else {
-            explorer_input(&explorer);
-            if (IsKeyReleased(KEY_ENTER) && explorer.cursor == -1) {
-                explorer_load_prevpath(&explorer);
+            const char *status_text;
+            switch(explorer.mode) {
+                case NORMAL: 
+                    // Close explorer
+                    if (IsKeyPressed(KEY_ESCAPE) && editor.mode != FIND) {
+                        editor.explorer_open = false;
+                    }
+                    else if (IsKeyPressed(KEY_A)) explorer.mode = CREATE;
+                    else if (IsKeyPressed(KEY_R)) explorer.mode = RENAME;
+                    else if (IsKeyPressed(KEY_D)) explorer.mode = DELETE;
+
+                    status_text = "^A: new - ^R: rename - ^D: delete";
+                    explorer_input(&explorer);
+                    if (IsKeyReleased(KEY_ENTER) && explorer.cursor == -1) {
+                        explorer_load_prevpath(&explorer);
+                    }
+                    else if (IsKeyPressed(KEY_ENTER) && explorer.cursor > -1) {
+                        explorer.y_offset = 0;
+                        char *selected_path = explorer.filepath_list.paths[explorer.cursor];
+                        if (IsPathFile(selected_path) && FileExists(selected_path)) {
+                            strcpy(explorer.current_file, selected_path);
+                            editor_reset(&text, &cursor, &lines, &camera);
+                            insert_text_from_file(selected_path, &text, &lines, &cursor);
+                            cursor_move_start(&cursor);
+                            update_cursor_display(&editor);
+                            editor.explorer_open = false;
+                        } 
+                        else if (DirectoryExists(selected_path)) {
+                            explorer_load_path(&explorer, selected_path);
+                        }
+                    }
+                break;
+                case RENAME:
+                    status_text = "rename file [%d]: ";
+                    capture_input_simple(explorer.buffer, &explorer.buff_cursor, MAX_BUFF_EXPLORER);
+                break;
+                case CREATE: 
+                    status_text = TextFormat("create file: %s/", explorer.path);
+                    capture_input_simple(explorer.buffer, &explorer.buff_cursor, MAX_BUFF_EXPLORER);
+                    if (IsKeyPressed(KEY_ENTER) && explorer.buff_cursor > 0) {
+                        char *filename = LoadUTF8(explorer.buffer, explorer.buff_cursor);
+                        if (filename[explorer.buff_cursor-1] == '/') {
+                            const char *_path = TextFormat("%s/%s", explorer.path, filename);
+                            int dir = MakeDirectory(_path);
+                        } else if (IsFileNameValid(filename)) {
+                            const char *_path = TextFormat("%s/%s", explorer.path, filename);
+                            bool saved = SaveFileText(_path, "");
+                        }
+                        memset(explorer.buffer, 0, explorer.buff_cursor);
+                        explorer.buff_cursor = 0;
+                        if (DirectoryExists(explorer.path)) {
+                            explorer.filepath_list = LoadDirectoryFiles(explorer.path);
+                            explorer.cursor = 0;
+                        }
+                        UnloadUTF8(filename);
+                        explorer.mode = NORMAL;
+                    }
+                break;
+                case DELETE: 
+                    status_text = "sure to delete file [%d]?: %s [y,N]: ";
+                    capture_input_simple(explorer.buffer, &explorer.buff_cursor, MAX_BUFF_EXPLORER);
+                break;
             }
-            else if (IsKeyReleased(KEY_ENTER) && explorer.cursor > -1) {
-                explorer.y_offset = 0;
-                char *selected_path = explorer.filepath_list.paths[explorer.cursor];
-                if (IsPathFile(selected_path) && FileExists(selected_path)) {
-                    strcpy(explorer.current_file, selected_path);
-                    editor_reset(&text, &cursor, &lines, &camera);
-                    insert_text_from_file(selected_path, &text, &lines, &cursor);
-                    cursor_move_start(&cursor);
-                    update_cursor_display(&editor);
-                    editor.explorer_open = true;
-                } 
-                else if (DirectoryExists(selected_path)) {
-                    explorer_load_path(&explorer, selected_path);
-                }
+
+            if (IsKeyPressed(KEY_ESCAPE) && (explorer.mode == RENAME || explorer.mode == CREATE  || explorer.mode == DELETE)) {
+                explorer.mode = NORMAL;
+                explorer.buff_cursor = 0;
+                memset(explorer.buffer, 0, sizeof(int) * MAX_BUFF_EXPLORER);
             }
 
             BeginTextureMode(tex);
-                DrawRectangle(0, 0, GW, GH, RBLACK);
-                explorer_draw(&explorer, editor.font, editor.font_measuring);
+            DrawRectangle(0, 0, GW, GH, RBLACK);
+            explorer_draw(&explorer, editor.font, editor.font_measuring);
+
+            // explorer status 
+            draw_status(status_text, editor.font, editor.font_measuring, RGRAY, RGRAY, RBLACK);
+            Vector2 _pos = { 
+                strlen(status_text) * (editor.font_measuring.x + RFONT_SPACING),
+                GH - editor.font_measuring.y - RFONT_SPACING
+            };
+            if (explorer.mode != NORMAL) {
+                DrawTextCodepoints(editor.font, explorer.buffer, explorer.buff_cursor, _pos, RFONT_SIZE, RFONT_SPACING, RGRAY);
+            }
+
             EndTextureMode();
 
             if (editor.config.show_shader) {
@@ -432,12 +508,19 @@ int main(int argc, char **argv)
         //font resize
         if (IsKeyPressed(KEY_COMMA) && IsKeyDown(RKEY_ACTION)) {
             change_font_size(&editor, RFONT_SIZE-2);
+            editor_calc_lines(&editor);
             explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
             UPDATEC(&editor, &camera);
         } else if (IsKeyPressed(KEY_PERIOD) && IsKeyDown(RKEY_ACTION)) {
             change_font_size(&editor, RFONT_SIZE+2);
+            editor_calc_lines(&editor);
             explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
             UPDATEC(&editor, &camera);
+        }
+
+        if (IsKeyPressed(KEY_P) && IsKeyDown(KEY_LEFT_CONTROL)) {
+            explorer.filepath_list = LoadDirectoryFiles(explorer.path);
+            explorer.cursor = 0;
         }
 
         //debug purpose   
@@ -460,6 +543,10 @@ int main(int argc, char **argv)
             tex = LoadRenderTexture(GW, GH);
 
             SetShaderValue(crt, sh_rh, &ScreenH, SHADER_UNIFORM_FLOAT);
+
+            // calculate max-lines again
+            editor_calc_lines(&editor);
+            explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
         }
 
     }
@@ -468,7 +555,6 @@ int main(int argc, char **argv)
     UnloadShader(crt);
     UnloadFont(editor.font);
     CloseWindow();
-    free_undo(&editor);
     explorer_free(&explorer);
     free_text(&text);
     free_lines(&lines);

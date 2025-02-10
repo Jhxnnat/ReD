@@ -4,14 +4,28 @@
 #include <stdlib.h>
 #include "../raylib/include/raylib.h"
 
+#define MAX_PATH_LEN 512
+#define MAX_FILEPATH_LEN 128
+#define MAX_BUFF_EXPLORER 64
+
+typedef enum {
+    NORMAL,
+    RENAME,
+    CREATE,
+    DELETE
+} ExplorerMode;
+
 typedef struct {
-    char path[255];
+    char path[MAX_PATH_LEN];
     size_t path_capacity;
 
-    char working_directory[255];
-    char current_file[255];
+    char current_file[MAX_FILEPATH_LEN];
     FilePathList filepath_list;
     bool should_free;
+
+    ExplorerMode mode;
+    int buffer[MAX_BUFF_EXPLORER];
+    int buff_cursor;
 
     // graphical
     int cursor;

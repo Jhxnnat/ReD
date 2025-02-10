@@ -10,7 +10,7 @@ extern float ScreenH;
 
 extern int FontSize;
 
-#define NAME "Retro eDitor - [0.0.2]"
+#define NAME "ReD"
 #define GW ScreenW
 #define GH ScreenH
 #define RTEXT_LEFT 72
@@ -30,7 +30,6 @@ extern int FontSize;
 
 #define TEXT_INIT_SIZE 8
 #define LINES_INIT_SIZE 10
-#define STACK_MAX_SIZE 1024
 
 #define RKEY_ACTION KEY_LEFT_CONTROL
 
@@ -69,17 +68,6 @@ typedef struct {
     size_t selection_line_begin;
     size_t selection_line_end;
 } Cursor;
-
-typedef struct {
-    int *text;
-    size_t size;
-    size_t cursor_pos;
-    size_t col;
-    size_t line;
-    size_t hori_off;
-    size_t vert_off;
-    bool is_inserted;
-} Change;
 
 typedef struct {
     size_t p[1024];
@@ -122,11 +110,6 @@ typedef struct {
     int result_line;
     SearchResult result;
 
-    Change stack[STACK_MAX_SIZE];
-    Change stack_r[STACK_MAX_SIZE];
-    int stack_top;
-    int stack_top_redo;
-
     Config config;
 } Editor;
 
@@ -136,14 +119,8 @@ void init_cursor(Cursor *c);
 void init_lines(Lines *lines, size_t initial_capacity);
 void free_lines(Lines *lines);
 void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int window_w, int window_h);
-void push_undo(Editor *editor, Cursor c, Lines l);
-void push_redo(Editor *editor, Cursor c, Lines l);
-void free_undo(Editor *editor);
-void free_redo(Editor *editor);
+void editor_calc_lines(Editor *editor);
 void change_font_size(Editor *editor, int amount);
-
-//KMP Search: https://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm
-//from: https://rosettacode.org/wiki/Knuth-Morris-Pratt_string_search#Python
 SearchResult kmp_search(Editor e, const int *word, int word_len);
 
 #endif // !DS_H
