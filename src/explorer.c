@@ -65,3 +65,10 @@ void explorer_input(Explorer *e) {
 int explorer_cacl_lines(float font_measuring_y) {
     return (int)GH/(font_measuring_y+20);
 }
+
+void explorer_reload_path(Explorer *explorer) {
+    if (DirectoryExists(explorer->path)) {
+        explorer->filepath_list = LoadDirectoryFiles(explorer->path);
+        explorer->cursor = 0;
+    }
+}

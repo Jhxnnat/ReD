@@ -135,7 +135,6 @@ void draw_status(const char *text, Font font, Vector2 font_measuring, Color colo
     Vector2 pos = { 0, GH - h }; //TODO store this position so it can be used in other places
     DrawRectangle(pos.x, pos.y, GW, h, background);
     DrawLine(pos.x, pos.y, GW, GH - h, outline);
-    DrawLine(pos.x, pos.y - 1, GW, GH - h - 1, outline);
     
     Vector2 tpos = { pos.x + RFONT_SPACING, pos.y + RFONT_SPACING };
     DrawTextEx(font, text, tpos, font.baseSize, RFONT_SPACING, color);

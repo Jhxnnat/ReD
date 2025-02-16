@@ -193,7 +193,7 @@ int main(int argc, char **argv)
     InitWindow(GW, GH, NAME);
     SetWindowMinSize(400, 300);
     SetExitKey(0);
-    SetTargetFPS(60);
+    // SetTargetFPS(60);
 
     init_editor(&editor, &cursor, &lines, &text, GW, GH); //needs to be after InitWindow();
     explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
@@ -306,45 +306,41 @@ int main(int argc, char **argv)
                         key = GetCharPressed();
                     }
 
-                    // Repeat actions when keeping a key pressed
+                    // Key repeating actions
                     float delta = 60 * GetFrameTime();
                     if (_key == 0) {
                         _key = get_key();
-                    }
-                    if (key_auto == 0 && _key > 0 && time_pressing == 0) {
-                        keyboard_action(_key, &editor, &camera, &explorer);
-                    } 
-                    if (_key > 0 && key_auto == 1) {
-                        time_delay += delta;
-                        if (time_delay > DELAY) {
-                            time_delay = 0.0f;
-                            keyboard_action(_key, &editor, &camera, &explorer);
+                        if (_key > 0) keyboard_action(_key, &editor, &camera, &explorer);
+                    } else {
+                        if (IsKeyUp(_key)) {
+                            time_pressing = 0;
+                            _key = 0;
+                            key_auto = 0;
+                        } else if (IsKeyDown(_key)) {
+                            time_pressing += delta;
+                            if (time_pressing > DELAYINIT) {
+                                time_pressing = 0.0f;
+                                key_auto = 1;
+                            }
+                            if (key_auto == 1) {
+                                time_delay += delta;
+                                if (time_delay > DELAY) {
+                                    time_delay = 0.0f;
+                                    keyboard_action(_key, &editor, &camera, &explorer);
+                                }
+                            }
                         }
                         int __key__ = get_key();
-                        if (__key__ > 0 && __key__ != _key) { _key = __key__; }
-                    } 
-                    if (IsKeyUp(_key)) {
-                        time_pressing = 0;
-                        _key = 0;
-                        key_auto = 0;
-                    } else if (IsKeyDown(_key)) {
-                        time_pressing += delta;
-                        if (time_pressing > DELAYINIT) {
-                            time_pressing = 0.0f;
-                            key_auto = 1;
+                        if (__key__ > 0) {
+                            _key = __key__;
+                            keyboard_action(_key, &editor, &camera, &explorer);
                         }
                     }
                     break;
                 }
             }
 
-            if (IsKeyPressed(KEY_LEFT_SHIFT)) {
-                cursor.is_selecting = true;
-                if (cursor.selection_end - cursor.selection_begin <= 0) {
-                    cursor.selection_begin = cursor.pos;
-                    cursor.selection_end = cursor.pos;
-                }
-            }
+            if (IsKeyPressed(KEY_LEFT_SHIFT)) cursor.is_selecting = true;
             if (IsKeyReleased(KEY_LEFT_SHIFT)) cursor.is_selecting = false;
 
             camera.target.y = editor.font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
@@ -412,6 +408,7 @@ int main(int argc, char **argv)
         } 
         else {
             const char *status_text;
+            const char *path;
             switch(explorer.mode) {
                 case NORMAL: 
                     // Close explorer
@@ -444,34 +441,63 @@ int main(int argc, char **argv)
                     }
                 break;
                 case RENAME:
-                    status_text = "rename file [%d]: ";
+                    path = explorer.filepath_list.paths[explorer.cursor];
+                    status_text = TextFormat("rename file %s: ", path);
                     capture_input_simple(explorer.buffer, &explorer.buff_cursor, MAX_BUFF_EXPLORER);
+                    if (IsKeyPressed(KEY_ENTER) && explorer.buff_cursor > 1) {
+                        char *newname = LoadUTF8(explorer.buffer, explorer.buff_cursor);
+                        const char *newpath = TextFormat("%s/%s", explorer.path, newname);
+                        printf("newpath: %s\n", newpath);
+                        if (IsFileNameValid(newname)) {
+                            if (rename(path, newpath) != 0) {
+                                printf("error renaming... %s\n", path);
+                                exit(69);
+                            } else printf("renamed\n");
+                        } else printf("invalid filename\n");
+                        UnloadUTF8(newname);
+                        memset(explorer.buffer, 0, explorer.buff_cursor);
+                        explorer.buff_cursor = 0;
+                        explorer_reload_path(&explorer);
+                        explorer.mode = NORMAL;
+                    }
                 break;
                 case CREATE: 
                     status_text = TextFormat("create file: %s/", explorer.path);
                     capture_input_simple(explorer.buffer, &explorer.buff_cursor, MAX_BUFF_EXPLORER);
                     if (IsKeyPressed(KEY_ENTER) && explorer.buff_cursor > 0) {
                         char *filename = LoadUTF8(explorer.buffer, explorer.buff_cursor);
+                        const char *_path = TextFormat("%s/%s", explorer.path, filename);
                         if (filename[explorer.buff_cursor-1] == '/') {
-                            const char *_path = TextFormat("%s/%s", explorer.path, filename);
                             int dir = MakeDirectory(_path);
                         } else if (IsFileNameValid(filename)) {
-                            const char *_path = TextFormat("%s/%s", explorer.path, filename);
                             bool saved = SaveFileText(_path, "");
                         }
                         memset(explorer.buffer, 0, explorer.buff_cursor);
                         explorer.buff_cursor = 0;
-                        if (DirectoryExists(explorer.path)) {
-                            explorer.filepath_list = LoadDirectoryFiles(explorer.path);
-                            explorer.cursor = 0;
-                        }
+                        explorer_reload_path(&explorer);
                         UnloadUTF8(filename);
                         explorer.mode = NORMAL;
                     }
                 break;
                 case DELETE: 
-                    status_text = "sure to delete file [%d]?: %s [y,N]: ";
-                    capture_input_simple(explorer.buffer, &explorer.buff_cursor, MAX_BUFF_EXPLORER);
+                    path = explorer.filepath_list.paths[explorer.cursor];
+                    if (IsPathFile(path)) {
+                        status_text = TextFormat("sure to delete file %s? [ESC to cancel]: ", path);
+                    } else {
+                        status_text = "deleting directory not implemented yet [ESC to cancel]: ";
+                        // TODO: nftw(), rmdir(), unlink()
+                    }
+                    if (IsKeyPressed(KEY_ENTER) && IsPathFile(path)) {
+                        if (remove(path) == 0) {
+                            printf("deleted %s\n", path);
+                            explorer.buff_cursor = 0;
+                            explorer_reload_path(&explorer);
+                            explorer.mode = NORMAL;
+                        } else {
+                            printf("error deleting file\n");
+                            exit(69);
+                        }
+                    }
                 break;
             }
 

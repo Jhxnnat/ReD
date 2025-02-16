@@ -59,6 +59,7 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
     editor->appdir = GetApplicationDirectory();
     sprintf(editor->config.shader_file, "%s/%s", editor->appdir, "assets/shader/crt.glsl");
     sprintf(editor->config.font_file, "%s/%s", editor->appdir, "assets/fonts/IosevkaTerm/IosevkaTermNerdFontMono-Regular.ttf");
+    // sprintf(editor->config.font_file, "%s/%s", editor->appdir, "assets/fonts/BigBlueTerminal/BigBlueTermPlusNerdFontMono-Regular.ttf");
     //NOTE: only mono spaced fonts works correctly
 
     editor->config.show_shader = false;

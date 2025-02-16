@@ -6,7 +6,7 @@ Red does not have any real meaning (Raylib eDitor and others are just coincidenc
 
 ### Dependencies:
 - Raylib: https://github.com/raysan5/raylib
-- Nerd fonts: https://www.nerdfonts.com/ (a monospace fonts)
+- Nerd fonts: https://www.nerdfonts.com/ (a monospace font)
 
 ### Some sources: 
 - Project inspired by: https://youtu.be/w_yXlnjeAy4
