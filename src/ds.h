@@ -17,21 +17,23 @@ extern int FontSize;
 #define RTEXT_TOP 22
 #define RFONT_SPACING 2
 #define RFONT_SIZE FontSize
-#define RBLACK (Color){ 29, 32, 33, 255 }
-#define RGRAY (Color){ 146, 131, 116, 255 }
-#define RWHITE (Color){ 242, 229, 188, 255 }
-#define RRED (Color){ 204, 36, 29, 255 }
-#define RGREEN (Color){ 152, 151, 26, 255 }
-#define RYELLOW (Color){ 215, 153, 33, 255 }
-#define RBLUE (Color){ 69, 133, 136, 255 }
-#define RPURPLE (Color){ 177, 98, 134, 255 }
-#define RAQUA (Color){ 104, 157, 106, 255 }
-#define RORANGE (Color){ 214, 93, 14, 255 }
+
+#define RBLACK (Color){ 24, 24, 24, 255 }
+#define RWHITE (Color){ 228, 228, 239, 255 }
+#define RRED (Color){ 244, 56, 65, 255 }
+#define RYELLOW (Color){ 255, 221, 51, 255 }
+#define RORANGE (Color){ 204, 140, 60, 255 }
+#define RGREEN (Color){ 115, 201, 54, 255 }
+#define RAQUA (Color){ 149, 169, 159, 255 }
+#define RPURPLE (Color){ 158, 149, 199, 255 }
+#define RBLUE (Color){ 150, 166, 200, 255 }
+#define RGRAY (Color){ 96, 92, 94, 255 }
+
 
 #define TEXT_INIT_SIZE 8
 #define LINES_INIT_SIZE 10
 
-#define RKEY_ACTION KEY_LEFT_CONTROL
+#define MODKEY KEY_LEFT_CONTROL
 
 typedef enum {
     WRITE,
@@ -122,6 +124,16 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
 void editor_calc_lines(Editor *editor);
 void change_font_size(Editor *editor, int amount);
 SearchResult kmp_search(Editor e, const int *word, int word_len);
+void insert_text(Text *t, int c, Cursor *cu, Lines *lines);
+void delete_text(Text *t, Cursor *c, Lines *lines);
+void delete_word(Text *t, Cursor *c, Lines *lines);
+void insert_text_from_file(const char *path, Text *text, Lines *lines, Cursor *cursor);
+void copy_text(Text *text, Cursor *cursor);
+bool paste_text(Text *text, Cursor *cursor, Lines *lines);
+bool cut_text(Text *text, Cursor *cursor, Lines *lines);
+void resize_lines(Lines *lines);
+void update_lines(Lines *lines, size_t line_num, size_t start, size_t end);
+void new_line(Text *text, Lines *lines, Cursor *c);
 
 #endif // !DS_H
 

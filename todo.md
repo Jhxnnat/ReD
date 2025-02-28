@@ -15,7 +15,7 @@
 - [x] copy 
 - [x] paste
 - [x] cut
-    - [ ] test more
+    - [x] Fix cut actions
 - [x] writte the respectives header files
 - [x] selection stuff (home-end, reset)
     - [x] writting on a selection
@@ -41,34 +41,35 @@
 - [x] resizable window
 - [x] fonts
     - [x] dynamic font size
-- [ ] being able to manipulate files and directories (create, delete, rename)
-- [ ] being able to go open arbitrary paths
+- [x] being able to manipulate files and directories (create, delete, rename)
+    - [ ] deleting non empty directories (nftw, rmdir, unlink)
+- [ ] being able to open arbitrary paths from the program itself
 - [ ] Error management
 - [ ] config.h
-- [ ] embed default font
 
 ## funny/interesting
 - [x] simple syntax highlighting
-    - [ ] python mode
     - [ ] highlighting single quotes strings
+    - [ ] better highlighting (avoid hardcode language specific)
 - [x] file navigation?
-    - [ ] path nomalization
+    - [ ] finder (fuzzy?)
+    - [ ] path errors (/)
+    - [ ] color/symbol per filetype (directory, file, executable and so on)
 - [x] crt-shader
-- [ ] undo/redo (REFACTOR)
+- [ ] undo/redo
     - [ ] find nice way to manage changes
 - [x] incremental text search
     - [ ] allow finding backwards
 
 ## pain
-- [no, use wsl] windows support 
+- [ ] windows support 
 
 ## fancy features
-- [ ] sort of vim/emacs motions
 - [ ] automatic close brackets: [], {}, ()
 - [ ] new line keeps indentation
 
 ## No: 
-- [ ] LSP & related stuff
-- [ ] api (scripting)
-- [ ] code autocompletition
-- [ ] whatever fancy stuff
+- code autocompletition
+- plugins
+
+

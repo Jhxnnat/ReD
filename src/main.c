@@ -4,7 +4,6 @@
 
 #include "nav.h"
 #include "../raylib/include/raylib.h"
-#include "ins.h"
 #include "cam.h"
 #include "draw.h"
 #include "explorer.h"
@@ -63,7 +62,7 @@ void result_update(Editor *editor, Camera2D *camera){
 }
 
 void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer *explorer) {
-    if (IsKeyDown(RKEY_ACTION)) {
+    if (IsKeyDown(MODKEY)) {
         switch (key) {
             //move cursor
             case KEY_I:
@@ -144,6 +143,7 @@ void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer *explorer) {
             break;
             case KEY_BACKSPACE: 
                 delete_text(e->text, e->cursor, e->lines);
+				selection_reset(e->cursor);
                 update_cursor_display(e);
                 update_cam(cam, e);
             break;
@@ -154,6 +154,7 @@ void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer *explorer) {
             break;
             case KEY_DELETE:
                 cursor_move_h(e->cursor, e->lines, *e->text, false);
+				selection_reset(e->cursor);
                 delete_text(e->text, e->cursor, e->lines);
             break;
         }
@@ -193,7 +194,7 @@ int main(int argc, char **argv)
     InitWindow(GW, GH, NAME);
     SetWindowMinSize(400, 300);
     SetExitKey(0);
-    // SetTargetFPS(60);
+	// SetTargetFPS(60);
 
     init_editor(&editor, &cursor, &lines, &text, GW, GH); //needs to be after InitWindow();
     explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
@@ -263,7 +264,7 @@ int main(int argc, char **argv)
                         editor.search_promp[editor.search_len++] = key;
                         editor.result = kmp_search(editor, editor.search_promp, editor.search_len);
                         if (editor.search_len > 0 && editor.result.np > 0) {
-                            __pos = (editor.result.np > 1) ? 1 : 0;
+                            __pos = (editor.result.np > 1) ? 0 : -1;
                             editor.result_pos = editor.result.p[0];
                             editor.result_line = editor.result.l[0];
                             result_update(&editor, &camera);
@@ -275,23 +276,37 @@ int main(int argc, char **argv)
                         editor.search_promp[--editor.search_len] = '\0';
                         editor.result = kmp_search(editor, editor.search_promp, editor.search_len);
                         if (editor.search_len > 0 && editor.result.np > 0) {
-                            __pos = (editor.result.np > 1) ? 1 : 0;
+                            __pos = (editor.result.np > 1) ? 0 : -1;
                             editor.result_pos = editor.result.p[0];
                             editor.result_line = editor.result.l[0];
                             result_update(&editor, &camera);
                             update_cursor_display(&editor);
                         }
                     }
-                    if (__pos > -1 && IsKeyDown(RKEY_ACTION) && IsKeyPressed(KEY_ENTER)) {
-                        if (__pos == editor.result.np) { 
-                            __pos = 1;
-                            editor.result_pos = editor.result.p[0];
-                            editor.result_line = editor.result.l[0];
-                        }
-                        else if (__pos < editor.result.np) {
-                            editor.result_pos = editor.result.p[__pos++];
-                            editor.result_line = editor.result.l[__pos-1];
-                        }
+                    if (__pos > -1 && IsKeyPressed(KEY_ENTER)) {
+						if (IsKeyDown(MODKEY)) { //backwards
+							if (__pos == 0) {
+								__pos = editor.result.np-1;
+								editor.result_pos = editor.result.p[__pos];
+								editor.result_line = editor.result.l[__pos];
+								printf("Look back\n");
+							} else {
+								__pos--;
+								editor.result_pos = editor.result.p[__pos];
+								editor.result_line = editor.result.l[__pos];
+							}
+						} else { //forwards
+							if (__pos == editor.result.np-1) { 
+								__pos = 0;
+								editor.result_pos = editor.result.p[0];
+								editor.result_line = editor.result.l[0];
+							}
+							else if (__pos < editor.result.np-1) {
+								__pos++;
+								editor.result_pos = editor.result.p[__pos];
+								editor.result_line = editor.result.l[__pos];
+							}
+						}
                         result_update(&editor, &camera);
                         update_cursor_display(&editor);
                     }
@@ -362,25 +377,6 @@ int main(int argc, char **argv)
             DrawRectangle(camera.target.x, camera.target.y, editor.text_left_pos - 3, GH, RBLACK);
             draw_line_numbers(camera, editor.font, editor.font_measuring, lines, editor.text_left_pos, editor.max_lines);
 
-            if (editor.mode == FIND) {
-                //find-highlight
-                if (editor.result.np > 0) {
-                    int _m = (editor.font_measuring.x + RFONT_SPACING) * editor.search_len;
-                    DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, _m, editor.font_measuring.y, RORANGE);
-                    DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, editor.cursor_display, editor.font.baseSize, RFONT_SPACING, RBLACK);
-                }
-                //find-status
-                Vector2 symbol_pos = {
-                    camera.target.x + editor.text_left_pos + 10, 
-                    camera.target.y + GH - editor.font_measuring.y - 10
-                };
-                Vector2 find_pos = {
-                    symbol_pos.x + 10 + RFONT_SPACING,
-                    symbol_pos.y
-                };
-                DrawTextEx(editor.font, "/", symbol_pos, editor.font.baseSize, RFONT_SPACING, RGRAY);
-                DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, find_pos, editor.font.baseSize, RFONT_SPACING, RGRAY);
-            }
 
             //draw cursor
             DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, editor.font_measuring.x, editor.font_measuring.y, RWHITE);
@@ -390,10 +386,24 @@ int main(int argc, char **argv)
 
             EndMode2D();
 
-            //status bar (outside cam drawing to be able to use global coord to draw)
+            //status bar (outside mode2D drawing to be able to use global coord to draw) 
             if (editor.mode == WRITE) {
                 const char *status_text = TextFormat(" %d | \"%s\"", cursor.pos, explorer.current_file);
                 draw_status(status_text, editor.font, editor.font_measuring, RGRAY, RGRAY, RBLACK);
+            } else if (editor.mode == FIND) {
+                //find-highlight
+                if (editor.result.np > 0) {
+                    int _m = (editor.font_measuring.x + RFONT_SPACING) * editor.search_len;
+                    DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, _m, editor.font_measuring.y, RORANGE);
+                    DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, editor.cursor_display, editor.font.baseSize, RFONT_SPACING, RBLACK);
+                }
+                //find-status
+                Vector2 find_pos = {
+                    camera.target.x + RFONT_SPACING + editor.font_measuring.x,
+                    camera.target.y + GH - editor.font_measuring.y
+                };
+				draw_status("/", editor.font, editor.font_measuring, RGRAY, RGRAY, RBLACK);
+				DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, find_pos, editor.font.baseSize, RFONT_SPACING, RGRAY);
             }
 
             EndTextureMode();
@@ -484,7 +494,7 @@ int main(int argc, char **argv)
                     if (IsPathFile(path)) {
                         status_text = TextFormat("sure to delete file %s? [ESC to cancel]: ", path);
                     } else {
-                        status_text = "deleting directory not implemented yet [ESC to cancel]: ";
+                        status_text = "deleting not empty directory is not implemented [ESC to cancel]: ";
                         // TODO: nftw(), rmdir(), unlink()
                     }
                     if (IsKeyPressed(KEY_ENTER) && IsPathFile(path)) {
@@ -532,12 +542,12 @@ int main(int argc, char **argv)
 
         // global binds
         //font resize
-        if (IsKeyPressed(KEY_COMMA) && IsKeyDown(RKEY_ACTION)) {
+        if (IsKeyPressed(KEY_COMMA) && IsKeyDown(MODKEY)) {
             change_font_size(&editor, RFONT_SIZE-2);
             editor_calc_lines(&editor);
             explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
             UPDATEC(&editor, &camera);
-        } else if (IsKeyPressed(KEY_PERIOD) && IsKeyDown(RKEY_ACTION)) {
+        } else if (IsKeyPressed(KEY_PERIOD) && IsKeyDown(MODKEY)) {
             change_font_size(&editor, RFONT_SIZE+2);
             editor_calc_lines(&editor);
             explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
