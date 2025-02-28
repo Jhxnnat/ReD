@@ -2,7 +2,7 @@
 
 Red does not have any real meaning (Raylib eDitor and others are just coincidences).
 
-![foto](./imagen2.png)
+![foto](./imagen3.png)
 
 ### Dependencies:
 - Raylib: https://github.com/raysan5/raylib
