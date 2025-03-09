@@ -3,10 +3,10 @@
 
 #include "ds.h"
 
-float ScreenW = 1000;
-float ScreenH = 600;
+float ScreenW = WINDOW_W;
+float ScreenH = WINDOW_H;
 
-int FontSize = 24;
+int FontSize = FONT_SIZE;
 
 void init_text(Text *t, size_t size) {
     t->buff = malloc(size * sizeof(int));
@@ -57,18 +57,15 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
     }
 
     editor->appdir = GetApplicationDirectory();
-    sprintf(editor->config.shader_file, "%s/%s", editor->appdir, "assets/shader/crt.glsl");
-    sprintf(editor->config.font_file, "%s/%s", editor->appdir, "assets/fonts/IosevkaTerm/IosevkaTermNerdFontMono-Regular.ttf");
-    // sprintf(editor->config.font_file, "%s/%s", editor->appdir, "assets/fonts/BigBlueTerminal/BigBlueTermPlusNerdFontMono-Regular.ttf");
-    //NOTE: only mono spaced fonts works correctly
+    sprintf(editor->config.shader_file, "%s/%s", editor->appdir, SHADER_PATH);
+    sprintf(editor->config.font_file, "%s/%s", editor->appdir, FONT_PATH);
 
-    editor->config.show_shader = false;
-    editor->config.show_hightlight = true;
-    editor->config.show_decorations = true;
+    editor->config.show_shader = SHADER_ENABLE;
+    editor->config.show_highlight = COLORS_ENABLE;
 
     editor->font = LoadFontEx(editor->config.font_file, RFONT_SIZE, NULL, 250);
     if (!IsFontValid(editor->font)) {
-        editor->font = GetFontDefault();
+        editor->font = GetFontDefault(); //TODO: 'embed' Iosevka as default font
     }
     editor->font_measuring = MeasureTextEx(editor->font, "M", editor->font.baseSize, RFONT_SPACING);
 
@@ -369,3 +366,9 @@ bool cut_text(Text *text, Cursor *cursor, Lines *lines) {
     delete_text(text, cursor, lines);
     return true;
 }
+
+int calc_lines_fit(float font_measuring_y) {
+    int _h = font_measuring_y + (RFONT_SPACING * 2);
+    return (int)((GH - RTEXT_TOP - _h) / font_measuring_y);
+}
+

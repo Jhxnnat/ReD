@@ -41,7 +41,7 @@ void explorer_draw(Explorer *e, Font font, Vector2 font_measuring) {
     for (size_t i = 0; i < e->filepath_list.count; ++i) {
         DrawTextEx(font, e->filepath_list.paths[i], (Vector2){20, 20 + (font_measuring.y * (i+1 - e->y_offset)) }, font.baseSize, RFONT_SPACING, WHITE);
         if (e->cursor == (int)i) {
-            DrawRectangle(20, 20 + (font_measuring.y * (i+1 - e->y_offset)), GW-40, font_measuring.y, (Color){255, 255, 255, 100});
+            DrawRectangle(20, 20 + (font_measuring.y * (i+1 - e->y_offset)), GW-40, font_measuring.y, (Color){ 255, 255, 255, 100 });
         }
     }
 }
@@ -58,12 +58,8 @@ void explorer_input(Explorer *e) {
         if (e->cursor < e->y_offset && e->y_offset > 0) e->y_offset--;
     } else if (IsKeyPressed(KEY_K) && e->cursor+1 < (int)e->filepath_list.count) {
         e->cursor++;
-        if (e->cursor > e->lines_amount) e->y_offset++;
+        if (e->cursor > e->lines_amount - 3) e->y_offset++; //NOTE: magic number (3)
     }
-}
-
-int explorer_cacl_lines(float font_measuring_y) {
-    return (int)GH/(font_measuring_y+20);
 }
 
 void explorer_reload_path(Explorer *explorer) {

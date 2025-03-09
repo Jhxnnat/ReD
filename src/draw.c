@@ -132,7 +132,7 @@ void draw_selection(Cursor cursor, Lines lines, Vector2 font_measuring, int text
 
 void draw_status(const char *text, Font font, Vector2 font_measuring, Color color, Color outline, Color background) {
     int h = font_measuring.y + (RFONT_SPACING * 2);
-    Vector2 pos = { 0, GH - h }; //TODO store this position so it can be used in other places
+    Vector2 pos = { 0, GH - h };
     DrawRectangle(pos.x, pos.y, GW, h, background);
     DrawLine(pos.x, pos.y, GW, GH - h, outline);
     

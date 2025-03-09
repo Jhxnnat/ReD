@@ -49,6 +49,7 @@
 
 ## funny/interesting
 - [x] simple syntax highlighting
+    - [ ] bug with comment (when only one: '/')
     - [ ] highlighting single quotes strings
     - [ ] better highlighting (avoid hardcode language specific)
 - [x] file navigation?

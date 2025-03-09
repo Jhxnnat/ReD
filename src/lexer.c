@@ -23,12 +23,12 @@ Color token_color(TokenType kind){
     switch (kind) {
         case TOKEN_KEYWORD: return RYELLOW;
         case TOKEN_STRING: return RGREEN;
-        case TOKEN_COMMENT: return RGRAY;
-        case TOKEN_OTHER: return RBLUE;
+        case TOKEN_COMMENT: return RORANGE;
+        case TOKEN_OTHER: return RAQUA;
         case TOKEN_IDENTIFIER: return RWHITE;
         case TOKEN_PREPROC: return RRED;
         case TOKEN_NUMBER: return RPURPLE;
-        default: return RORANGE;
+        default: return RWHITE;
     }
 }
 

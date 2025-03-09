@@ -13,6 +13,8 @@
 
 #define UPDATEC(editor, camera) do { update_cursor_display(editor); update_cam(camera, editor); } while (0);
 
+#define repeat(n) for (int i = 0; i < n; ++i)
+
 void editor_reset(Text *text, Cursor *cursor, Lines *lines, Camera2D *camera) {
     memset(text->buff, 0, text->size); 
     text->size = 0;
@@ -61,106 +63,6 @@ void result_update(Editor *editor, Camera2D *camera){
     update_cam(camera, editor);
 }
 
-void keyboard_action(int key, Editor *e, Camera2D *cam, Explorer *explorer) {
-    if (IsKeyDown(MODKEY)) {
-        switch (key) {
-            //move cursor
-            case KEY_I:
-                cursor_move_v(e->cursor, e->lines, -1);
-                UPDATEC(e, cam);
-            break;
-            case KEY_J:
-                cursor_move_h(e->cursor, e->lines, *e->text, true);
-                update_cam_offset_up(e->cursor, e->lines);
-                update_cursor_display(e);
-                update_cam(cam, e);
-            break;
-            case KEY_K:
-                cursor_move_v(e->cursor, e->lines, 1);
-                UPDATEC(e, cam);
-            break;
-            case KEY_L:
-                cursor_move_h(e->cursor, e->lines, *e->text, false);
-                update_cam_offset_down(e->cursor, e->lines, e->max_lines);
-                update_cursor_display(e);
-                update_cam(cam, e);
-            break;
-            case KEY_W:
-                cursor_move_start(e->cursor);
-                update_cursor_display(e);
-                move_cam_start(cam, e->lines);
-            break;
-            case KEY_A:
-                cursor_move_sol(e->cursor, e->lines);
-                update_cursor_display(e);
-                move_cam_left(cam, e->cursor_display.x, e->font_measuring.y, e->text_left_pos);
-            break;
-            case KEY_S:
-                cursor_move_end(e->cursor, e->lines);
-                UPDATEC(e, cam);
-            break;
-            case KEY_D:
-                cursor_move_eol(e->cursor, e->lines);
-                update_cursor_display(e);
-                move_cam_right(cam, e->cursor_display.x, e->font_measuring.y);
-            break;
-            //copy-paste-cut
-            case KEY_C: copy_text(e->text, e->cursor); break;
-            case KEY_V: 
-                if (paste_text(e->text, e->cursor, e->lines)) {
-                    UPDATEC(e, cam);
-                }
-            break;
-            case KEY_X:
-                if (cut_text(e->text, e->cursor, e->lines)) {
-                    UPDATEC(e, cam);
-                }
-            break;
-            //other actions
-            case KEY_G:
-                if (strlen(explorer->current_file)) {
-                    char *_s = LoadUTF8(e->text->buff, e->text->size);
-                    SaveFileText(explorer->current_file, _s);
-                    UnloadUTF8(_s);
-                }
-            break;
-            case KEY_F: e->mode = FIND; break;
-            //word backspace
-            case KEY_BACKSPACE:
-                delete_word(e->text, e->cursor, e->lines);
-                UPDATEC(e, cam);
-            break;
-            //toggle highlight
-            case KEY_H: e->config.show_hightlight = !e->config.show_hightlight; break;
-        }
-    } else {
-        switch (key) {
-            case KEY_ENTER: 
-                new_line(e->text, e->lines, e->cursor);
-                update_cam_offset_down(e->cursor, e->lines, e->max_lines);
-                update_cursor_display(e);
-                update_cam(cam, e);
-            break;
-            case KEY_BACKSPACE: 
-                delete_text(e->text, e->cursor, e->lines);
-				selection_reset(e->cursor);
-                update_cursor_display(e);
-                update_cam(cam, e);
-            break;
-            case KEY_TAB:
-                insert_text(e->text, ' ', e->cursor, e->lines);
-                insert_text(e->text, ' ', e->cursor, e->lines);
-                update_cursor_display(e);
-            break;
-            case KEY_DELETE:
-                cursor_move_h(e->cursor, e->lines, *e->text, false);
-				selection_reset(e->cursor);
-                delete_text(e->text, e->cursor, e->lines);
-            break;
-        }
-    }
-}
-
 int get_key() {
     int _key = GetKeyPressed();
     switch (_key) {
@@ -172,6 +74,140 @@ int get_key() {
             return 0;
     }
     return _key;
+}
+
+bool handle_key_repeat(int *_key, float *time_pressing, float *time_delay, int *key_auto) {
+	float delta = 60 * GetFrameTime();
+	if (*_key == 0) {
+		*_key = get_key();
+		if (*_key > 0) return true;
+	} else {
+		if (IsKeyUp(*_key)) {
+			*time_pressing = 0;
+			*_key = 0;
+			*key_auto = 0;
+		} else if (IsKeyDown(*_key)) {
+			*time_pressing += delta;
+			if (*time_pressing > DELAYINIT) {
+				*time_pressing = 0.0f;
+				*key_auto = 1;
+			}
+			if (*key_auto == 1) {
+				*time_delay += delta;
+				if (*time_delay > DELAY) {
+					*time_delay = 0.0f;
+					return true;
+				}
+			}
+		}
+		int __key__ = get_key();
+		if (__key__ > 0) {
+			*_key = __key__;
+			return true;
+		}
+	}
+	return false;
+}
+
+void keyboard_action(Editor *e, Camera2D *cam, Explorer *explorer, int key) {
+	switch (key) {
+		//move cursor
+		case KEY_I: //up
+			cursor_move_v(e->cursor, e->lines, -1);
+			UPDATEC(e, cam);
+		break;
+		case KEY_J: //left
+			cursor_move_h(e->cursor, e->lines, *e->text, true);
+			update_cam_offset_up(e->cursor, e->lines);
+			update_cursor_display(e);
+			update_cam(cam, e);
+		break;
+		case KEY_K: //down
+			cursor_move_v(e->cursor, e->lines, 1);
+			UPDATEC(e, cam);
+		break;
+		case KEY_L: //right
+			cursor_move_h(e->cursor, e->lines, *e->text, false);
+			update_cam_offset_down(e->cursor, e->lines, e->max_lines);
+			update_cursor_display(e);
+			update_cam(cam, e);
+		break;
+		case KEY_W: //start of file
+			cursor_move_start(e->cursor);
+			update_cursor_display(e);
+			move_cam_start(cam, e->lines);
+		break;
+		case KEY_A: //start of line
+			cursor_move_sol(e->cursor, e->lines);
+			update_cursor_display(e);
+			move_cam_left(cam, e->cursor_display.x, e->font_measuring.y, e->text_left_pos);
+		break;
+		case KEY_S: //end of file
+			cursor_move_end(e->cursor, e->lines);
+			UPDATEC(e, cam);
+		break;
+		case KEY_D: //end of line
+			cursor_move_eol(e->cursor, e->lines);
+			update_cursor_display(e);
+			move_cam_right(cam, e->cursor_display.x, e->font_measuring.y);
+		break;
+
+		//copy-paste-cut
+		case KEY_C: copy_text(e->text, e->cursor); break;
+		case KEY_V: 
+			if (paste_text(e->text, e->cursor, e->lines)) {
+				UPDATEC(e, cam);
+			}
+		break;
+		case KEY_X:
+			if (cut_text(e->text, e->cursor, e->lines)) {
+				UPDATEC(e, cam);
+			}
+		break;
+
+		case KEY_G: //savefile
+			if (strlen(explorer->current_file)) {
+				char *_s = LoadUTF8(e->text->buff, e->text->size);
+				SaveFileText(explorer->current_file, _s);
+				UnloadUTF8(_s);
+			}
+		break;
+		case KEY_F: e->mode = FIND; break;
+		case KEY_BACKSPACE:  //delete until a space
+			delete_word(e->text, e->cursor, e->lines);
+			UPDATEC(e, cam);
+		break;
+		//toggle highlight
+		case KEY_H: e->config.show_highlight = !e->config.show_highlight; break;
+	}
+}
+
+void keyboard_action_functions(Editor *e, Camera2D *cam, int key) { //keyboard actions done without ctrl or any modifier
+	switch (key) {
+		case KEY_ENTER:
+			new_line(e->text, e->lines, e->cursor);
+			update_cam_offset_down(e->cursor, e->lines, e->max_lines);
+			update_cursor_display(e);
+			update_cam(cam, e);
+		break;
+		case KEY_BACKSPACE:
+			delete_text(e->text, e->cursor, e->lines);
+			selection_reset(e->cursor);
+			update_cursor_display(e);
+			update_cam(cam, e);
+		break;
+		case KEY_TAB:
+			repeat(4) {
+				insert_text(e->text, ' ', e->cursor, e->lines);
+			}
+			update_cursor_display(e);
+		break;
+		case KEY_DELETE:
+			cursor_move_h(e->cursor, e->lines, *e->text, false);
+			selection_reset(e->cursor);
+			delete_text(e->text, e->cursor, e->lines);
+		break;
+	}
 }
 
 int main(int argc, char **argv)
@@ -196,8 +232,9 @@ int main(int argc, char **argv)
     SetExitKey(0);
 	// SetTargetFPS(60);
 
-    init_editor(&editor, &cursor, &lines, &text, GW, GH); //needs to be after InitWindow();
-    explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
+    init_editor(&editor, &cursor, &lines, &text, GW, GH);
+    explorer.lines_amount = calc_lines_fit(editor.font_measuring.y);
+	printf("		Lines Amount: %d\n", explorer.lines_amount);
 
     if (argc == 1) {
         const char *working_dir = GetWorkingDirectory();
@@ -289,7 +326,6 @@ int main(int argc, char **argv)
 								__pos = editor.result.np-1;
 								editor.result_pos = editor.result.p[__pos];
 								editor.result_line = editor.result.l[__pos];
-								printf("Look back\n");
 							} else {
 								__pos--;
 								editor.result_pos = editor.result.p[__pos];
@@ -315,42 +351,19 @@ int main(int argc, char **argv)
                 case WRITE: {
                     int key = GetCharPressed();
                     while (key > 0 && key <= 255) {
-                        insert_text(&text, key, &cursor, &lines);
-                        update_cursor_display(&editor);
-                        move_cam_right(&camera, editor.cursor_display.x, editor.font_measuring.y);
+						insert_text(&text, key, &cursor, &lines);
+						update_cursor_display(&editor);     
+						move_cam_right(&camera, editor.cursor_display.x, editor.font_measuring.y);
                         key = GetCharPressed();
                     }
 
-                    // Key repeating actions
-                    float delta = 60 * GetFrameTime();
-                    if (_key == 0) {
-                        _key = get_key();
-                        if (_key > 0) keyboard_action(_key, &editor, &camera, &explorer);
-                    } else {
-                        if (IsKeyUp(_key)) {
-                            time_pressing = 0;
-                            _key = 0;
-                            key_auto = 0;
-                        } else if (IsKeyDown(_key)) {
-                            time_pressing += delta;
-                            if (time_pressing > DELAYINIT) {
-                                time_pressing = 0.0f;
-                                key_auto = 1;
-                            }
-                            if (key_auto == 1) {
-                                time_delay += delta;
-                                if (time_delay > DELAY) {
-                                    time_delay = 0.0f;
-                                    keyboard_action(_key, &editor, &camera, &explorer);
-                                }
-                            }
-                        }
-                        int __key__ = get_key();
-                        if (__key__ > 0) {
-                            _key = __key__;
-                            keyboard_action(_key, &editor, &camera, &explorer);
-                        }
-                    }
+					if (handle_key_repeat(&_key, &time_pressing, &time_delay, &key_auto)) {
+						if (IsKeyDown(KEY_LEFT_CONTROL)) {
+							keyboard_action(&editor, &camera, &explorer, _key);
+						} else {
+							keyboard_action_functions(&editor, &camera, _key);
+						}
+					}
                     break;
                 }
             }
@@ -363,7 +376,7 @@ int main(int argc, char **argv)
             DrawRectangle(0, 0, GW, GH, RBLACK);
             BeginMode2D(camera);
 
-            if (editor.config.show_hightlight) {
+            if (editor.config.show_highlight) {
                 draw_text_tokenized_optimized(text.buff, 
                                               lines, editor.font, editor.font_measuring, 
                                               (Vector2){ editor.text_left_pos, RTEXT_TOP }, 
@@ -545,12 +558,12 @@ int main(int argc, char **argv)
         if (IsKeyPressed(KEY_COMMA) && IsKeyDown(MODKEY)) {
             change_font_size(&editor, RFONT_SIZE-2);
             editor_calc_lines(&editor);
-            explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
+            explorer.lines_amount = calc_lines_fit(editor.font_measuring.y);
             UPDATEC(&editor, &camera);
         } else if (IsKeyPressed(KEY_PERIOD) && IsKeyDown(MODKEY)) {
             change_font_size(&editor, RFONT_SIZE+2);
             editor_calc_lines(&editor);
-            explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
+            explorer.lines_amount = calc_lines_fit(editor.font_measuring.y);
             UPDATEC(&editor, &camera);
         }
 
@@ -582,7 +595,7 @@ int main(int argc, char **argv)
 
             // calculate max-lines again
             editor_calc_lines(&editor);
-            explorer.lines_amount = explorer_cacl_lines(editor.font_measuring.y);
+            explorer.lines_amount = calc_lines_fit(editor.font_measuring.y);
         }
 
     }

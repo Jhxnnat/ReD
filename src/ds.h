@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "../raylib/include/raylib.h"
+#include "config.h"
 
+//globals
 extern float ScreenW;
 extern float ScreenH;
-
 extern int FontSize;
 
 #define NAME "ReD"
@@ -18,22 +19,10 @@ extern int FontSize;
 #define RFONT_SPACING 2
 #define RFONT_SIZE FontSize
 
-#define RBLACK (Color){ 24, 24, 24, 255 }
-#define RWHITE (Color){ 228, 228, 239, 255 }
-#define RRED (Color){ 244, 56, 65, 255 }
-#define RYELLOW (Color){ 255, 221, 51, 255 }
-#define RORANGE (Color){ 204, 140, 60, 255 }
-#define RGREEN (Color){ 115, 201, 54, 255 }
-#define RAQUA (Color){ 149, 169, 159, 255 }
-#define RPURPLE (Color){ 158, 149, 199, 255 }
-#define RBLUE (Color){ 150, 166, 200, 255 }
-#define RGRAY (Color){ 96, 92, 94, 255 }
-
-
 #define TEXT_INIT_SIZE 8
 #define LINES_INIT_SIZE 10
 
-#define MODKEY KEY_LEFT_CONTROL
+/*#define MODKEY KEY_LEFT_CONTROL*/
 
 typedef enum {
     WRITE,
@@ -83,7 +72,7 @@ typedef struct {
 
 typedef struct {
     int show_shader;
-    int show_hightlight;
+    int show_highlight;
     int show_decorations;
     char font_file[1024];
     char shader_file[1024];
@@ -134,6 +123,7 @@ bool cut_text(Text *text, Cursor *cursor, Lines *lines);
 void resize_lines(Lines *lines);
 void update_lines(Lines *lines, size_t line_num, size_t start, size_t end);
 void new_line(Text *text, Lines *lines, Cursor *c);
+int calc_lines_fit(float font_measuring_y);
 
 #endif // !DS_H
 

@@ -10,4 +10,4 @@ typedef struct {
 
 //TODO: implement undo/redo behaviour
 
-#endif UNDO_H //UNDO_H
+#endif // !UNDO_H
