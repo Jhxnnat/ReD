@@ -4,9 +4,10 @@
 
 #include "nav.h"
 #include "../raylib/include/raylib.h"
-#include "cam.h"
+// #include "cam.h"
 #include "draw.h"
 #include "explorer.h"
+#include "undo.h"
 
 #define DELAY 2
 #define DELAYINIT 30
@@ -14,19 +15,6 @@
 #define UPDATEC(editor, camera) do { update_cursor_display(editor); update_cam(camera, editor); } while (0);
 
 #define repeat(n) for (int i = 0; i < n; ++i)
-
-void editor_reset(Text *text, Cursor *cursor, Lines *lines, Camera2D *camera) {
-    memset(text->buff, 0, text->size); 
-    text->size = 0;
-    init_cursor(cursor); // no malloc
-    init_camera(camera); // ... //
-    for (size_t n = 0; n < lines->size; ++n) {
-        lines->lines[n].start = 0;
-        lines->lines[n].end = 0;
-    }
-    lines->size = 1;
-    lines->offset = 0;
-}
 
 char mode_to_str(EditorMode mode) {
     switch (mode) {
@@ -178,7 +166,28 @@ void keyboard_action(Editor *e, Camera2D *cam, Explorer *explorer, int key) {
 			UPDATEC(e, cam);
 		break;
 		//toggle highlight
-		case KEY_H: e->config.show_highlight = !e->config.show_highlight; break;
+		case KEY_H: 
+			e->config.show_highlight = !e->config.show_highlight;
+		break;
+		// undo/redo
+		case KEY_Z:
+			if (ustack_undo(&e->ustack)) {
+				Undo change = e->ustack.undo[e->ustack.size];
+				printf("change.size: %zu\n", change.size);
+				editor_reset(e->text, e->cursor, e->lines, cam);
+				for (size_t i = 0; i < change.size; ++i) {
+					int c = change.buff[i];
+					if (c == 10) new_line(e->text, e->lines, e->cursor);
+					else insert_text(e->text, c, e->cursor, e->lines);
+				}
+				update_cursor_display(e);
+				update_cam(cam, e);
+			}
+
+			/*e->cursor->pos = change.cursor;*/
+			/*e->cursor->column = change.cursor_column;*/
+			/*e->cursor->current_line = change.cursor_line;*/
+		break;
 	}
 }
 
@@ -189,6 +198,9 @@ void keyboard_action_functions(Editor *e, Camera2D *cam, int key) { //keyboard a
 			update_cam_offset_down(e->cursor, e->lines, e->max_lines);
 			update_cursor_display(e);
 			update_cam(cam, e);
+
+			//Undo/push
+			ustack_push(&e->ustack, e->text->buff, e->text->size);
 		break;
 		case KEY_BACKSPACE:
 			delete_text(e->text, e->cursor, e->lines);
@@ -234,7 +246,9 @@ int main(int argc, char **argv)
 
     init_editor(&editor, &cursor, &lines, &text, GW, GH);
     explorer.lines_amount = calc_lines_fit(editor.font_measuring.y);
-	printf("		Lines Amount: %d\n", explorer.lines_amount);
+	/*printf("		Lines Amount: %d\n", explorer.lines_amount);*/
+
+	init_ustack(&editor.ustack, 8);
 
     if (argc == 1) {
         const char *working_dir = GetWorkingDirectory();

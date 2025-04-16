@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "../raylib/include/raylib.h"
 #include "config.h"
+#include "undo.h"
 
 //globals
 extern float ScreenW;
@@ -21,8 +22,6 @@ extern int FontSize;
 
 #define TEXT_INIT_SIZE 8
 #define LINES_INIT_SIZE 10
-
-/*#define MODKEY KEY_LEFT_CONTROL*/
 
 typedef enum {
     WRITE,
@@ -101,6 +100,8 @@ typedef struct {
     int result_line;
     SearchResult result;
 
+	Ustack ustack;
+
     Config config;
 } Editor;
 
@@ -123,7 +124,17 @@ bool cut_text(Text *text, Cursor *cursor, Lines *lines);
 void resize_lines(Lines *lines);
 void update_lines(Lines *lines, size_t line_num, size_t start, size_t end);
 void new_line(Text *text, Lines *lines, Cursor *c);
+
 int calc_lines_fit(float font_measuring_y);
+void editor_reset(Text *text, Cursor *cursor, Lines *lines, Camera2D *camera);
+
+void init_camera(Camera2D *camera);
+void update_cam_offset_up(Cursor *cursor, Lines *lines);
+void update_cam_offset_down(Cursor *cursor, Lines *lines, int max_lines);
+void move_cam_left(Camera2D *camera, int cursor_x, int font_height, int text_left_pos);
+void move_cam_right(Camera2D *camera, int cursor_x, int font_height);
+void move_cam_start(Camera2D *camera, Lines *lines);
+void move_cam_end(Camera2D *camera, Lines *lines, int max_lines);
+void update_cam(Camera2D *camera, Editor *editor);
 
 #endif // !DS_H
-
