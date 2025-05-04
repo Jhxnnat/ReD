@@ -1,12 +1,13 @@
 # ReD is a (work in progress) simple text editor made with raylib
 
-Red does not have any real meaning (Raylib eDitor and others are just coincidences).
+ReD does not have any real meaning (Raylib eDitor and others are just coincidences).
+The editor only have a C mode for drawing colored text.
 
 ![foto](./imagen3.png)
 
 ### Dependencies:
 - Raylib: https://github.com/raysan5/raylib
-- Nerd fonts: https://www.nerdfonts.com/ (a monospace font is mandatory for now)
+- Nerd fonts: https://www.nerdfonts.com/ (a monospace font is mandatory in order for the drawing to be consistent)
 
 ### Building:
 
