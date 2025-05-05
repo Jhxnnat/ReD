@@ -1,4 +1,4 @@
-# ReD is a (work in progress) simple text editor made with raylib
+# ReD is a toy text editor made with raylib
 
 ReD does not have any real meaning (Raylib eDitor and others are just coincidences).
 The editor only have a C mode for drawing colored text.
