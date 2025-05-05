@@ -1,7 +1,7 @@
+//This file contains the default values
+//
 #ifndef CONFIG_H
 #define CONFIG_H
-
-//This file contains the default startup values
 
 //write colors as hex values, hex to rgb
 #define HEXC(c) \
@@ -9,16 +9,28 @@
 	(c >> (1*8))&0xFF, \
 	(c >> (0*8))&0xFF, 255
 
-#define RBLACK  (Color){HEXC(0x181818)}
-#define RWHITE  (Color){HEXC(0xFFFFFF)}
-#define RRED    (Color){HEXC(0xF43841)}
-#define RYELLOW (Color){HEXC(0xFFDD33)}
-#define RORANGE (Color){HEXC(0xCC8C3C)}
-#define RGREEN  (Color){HEXC(0x73C936)}
-#define RAQUA   (Color){HEXC(0x95A99F)}
-#define RPURPLE (Color){HEXC(0x303540)}
-#define RBLUE   (Color){HEXC(0x565F73)}
-#define RGRAY   (Color){HEXC(0x52494E)}
+//TODO: define colors in more abstract way (foreground, background...)
+// #define RBLACK  (Color){HEXC(0x181818)}
+// #define RWHITE  (Color){HEXC(0xFFFFFF)}
+// #define RRED    (Color){HEXC(0xF43841)}
+// #define RYELLOW (Color){HEXC(0xFFDD33)}
+// #define RORANGE (Color){HEXC(0xCC8C3C)}
+// #define RGREEN  (Color){HEXC(0x73C936)}
+// #define RAQUA   (Color){HEXC(0x95A99F)}
+// #define RPURPLE (Color){HEXC(0x303540)}
+// #define RBLUE   (Color){HEXC(0x565F73)}
+// #define RGRAY   (Color){HEXC(0x52494E)}
+
+#define RKEYWORD (Color){HEXC(0xFFDD33)}
+#define RSTRING  (Color){HEXC(0x73C936)}
+#define RCOMMENT (Color){HEXC(0xCC8C3C)}
+#define RBG (Color){HEXC(0x181818)}
+#define RFG (Color){HEXC(0xFFFFFF)}
+#define RPREPROC    (Color){HEXC(0xF43841)}
+#define RBG2   (Color){HEXC(0x52494E)}
+#define ROTHER   (Color){HEXC(0x95A99F)}
+#define RNUMBER (Color){HEXC(0x9A689E)}
+#define RTYPE   (Color){HEXC(0x565F73)}
 
 #define COLORS_ENABLE true
 #define FONT_SIZE 26

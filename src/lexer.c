@@ -21,14 +21,14 @@ const char *token_name(TokenType kind){
 
 Color token_color(TokenType kind){
     switch (kind) {
-        case TOKEN_KEYWORD: return RYELLOW;
-        case TOKEN_STRING: return RGREEN;
-        case TOKEN_COMMENT: return RORANGE;
-        case TOKEN_OTHER: return RAQUA;
-        case TOKEN_IDENTIFIER: return RWHITE;
-        case TOKEN_PREPROC: return RRED;
-        case TOKEN_NUMBER: return RPURPLE;
-        default: return RWHITE;
+        case TOKEN_KEYWORD: return RKEYWORD;
+        case TOKEN_STRING: return RSTRING;
+        case TOKEN_COMMENT: return RCOMMENT;
+        case TOKEN_OTHER: return ROTHER;
+        case TOKEN_IDENTIFIER: return RFG;
+        case TOKEN_PREPROC: return RPREPROC;
+        case TOKEN_NUMBER: return RNUMBER;
+        default: return RFG;
     }
 }
 
@@ -218,7 +218,9 @@ Token scan_token(Scanner *scanner) {
     switch (c) {
         case '#': return make_preproc(scanner);
         case '"': return make_string(scanner);
-        case '/': return make_comment(scanner);
+        case '/':
+			if (peek(scanner) == '/') { return make_comment(scanner); }
+			break;
     }
 
     return make_token(scanner, TOKEN_OTHER);

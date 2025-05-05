@@ -7,7 +7,6 @@
 // #include "cam.h"
 #include "draw.h"
 #include "explorer.h"
-#include "undo.h"
 
 #define DELAY 2
 #define DELAYINIT 30
@@ -169,25 +168,6 @@ void keyboard_action(Editor *e, Camera2D *cam, Explorer *explorer, int key) {
 		case KEY_H: 
 			e->config.show_highlight = !e->config.show_highlight;
 		break;
-		// undo/redo
-		case KEY_Z:
-			if (ustack_undo(&e->ustack)) {
-				Undo change = e->ustack.undo[e->ustack.size];
-				printf("change.size: %zu\n", change.size);
-				editor_reset(e->text, e->cursor, e->lines, cam);
-				for (size_t i = 0; i < change.size; ++i) {
-					int c = change.buff[i];
-					if (c == 10) new_line(e->text, e->lines, e->cursor);
-					else insert_text(e->text, c, e->cursor, e->lines);
-				}
-				update_cursor_display(e);
-				update_cam(cam, e);
-			}
-
-			/*e->cursor->pos = change.cursor;*/
-			/*e->cursor->column = change.cursor_column;*/
-			/*e->cursor->current_line = change.cursor_line;*/
-		break;
 	}
 }
 
@@ -198,9 +178,6 @@ void keyboard_action_functions(Editor *e, Camera2D *cam, int key) { //keyboard a
 			update_cam_offset_down(e->cursor, e->lines, e->max_lines);
 			update_cursor_display(e);
 			update_cam(cam, e);
-
-			//Undo/push
-			ustack_push(&e->ustack, e->text->buff, e->text->size);
 		break;
 		case KEY_BACKSPACE:
 			delete_text(e->text, e->cursor, e->lines);
@@ -246,9 +223,6 @@ int main(int argc, char **argv)
 
     init_editor(&editor, &cursor, &lines, &text, GW, GH);
     explorer.lines_amount = calc_lines_fit(editor.font_measuring.y);
-	/*printf("		Lines Amount: %d\n", explorer.lines_amount);*/
-
-	init_ustack(&editor.ustack, 8);
 
     if (argc == 1) {
         const char *working_dir = GetWorkingDirectory();
@@ -387,7 +361,7 @@ int main(int argc, char **argv)
 
             camera.target.y = editor.font_measuring.y*lines.offset + RFONT_SPACING*lines.offset;
             BeginTextureMode(tex);
-            DrawRectangle(0, 0, GW, GH, RBLACK);
+            DrawRectangle(0, 0, GW, GH, RBG);
             BeginMode2D(camera);
 
             if (editor.config.show_highlight) {
@@ -396,19 +370,19 @@ int main(int argc, char **argv)
                                               (Vector2){ editor.text_left_pos, RTEXT_TOP }, 
                                               editor.font.baseSize, RFONT_SPACING, editor.max_lines);
             } else {
-                draw_text_optimized(editor, (Vector2){ editor.text_left_pos, RTEXT_TOP }, RWHITE);
+                draw_text_optimized(editor, (Vector2){ editor.text_left_pos, RTEXT_TOP }, RFG);
             }
 
             draw_selection(cursor, lines, editor.font_measuring, editor.text_left_pos);
 
-            DrawRectangle(camera.target.x, camera.target.y, editor.text_left_pos - 3, GH, RBLACK);
+            DrawRectangle(camera.target.x, camera.target.y, editor.text_left_pos - 3, GH, RBG);
             draw_line_numbers(camera, editor.font, editor.font_measuring, lines, editor.text_left_pos, editor.max_lines);
 
 
             //draw cursor
-            DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, editor.font_measuring.x, editor.font_measuring.y, RWHITE);
+            DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, editor.font_measuring.x, editor.font_measuring.y, RFG);
             if (text.buff[cursor.pos] != '\n' && text.size > cursor.pos) {
-                DrawTextCodepoint(editor.font, text.buff[cursor.pos], editor.cursor_display, editor.font.baseSize, RBLACK);
+                DrawTextCodepoint(editor.font, text.buff[cursor.pos], editor.cursor_display, editor.font.baseSize, RBG);
             }
 
             EndMode2D();
@@ -416,21 +390,21 @@ int main(int argc, char **argv)
             //status bar (outside mode2D drawing to be able to use global coord to draw) 
             if (editor.mode == WRITE) {
                 const char *status_text = TextFormat(" %d | \"%s\"", cursor.pos, explorer.current_file);
-                draw_status(status_text, editor.font, editor.font_measuring, RGRAY, RGRAY, RBLACK);
+                draw_status(status_text, editor.font, editor.font_measuring, RBG2, RBG2, RBG);
             } else if (editor.mode == FIND) {
                 //find-highlight
                 if (editor.result.np > 0) {
                     int _m = (editor.font_measuring.x + RFONT_SPACING) * editor.search_len;
-                    DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, _m, editor.font_measuring.y, RORANGE);
-                    DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, editor.cursor_display, editor.font.baseSize, RFONT_SPACING, RBLACK);
+                    DrawRectangle(editor.cursor_display.x, editor.cursor_display.y, _m, editor.font_measuring.y, RCOMMENT);
+                    DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, editor.cursor_display, editor.font.baseSize, RFONT_SPACING, RBG);
                 }
                 //find-status
                 Vector2 find_pos = {
                     camera.target.x + RFONT_SPACING + editor.font_measuring.x,
                     camera.target.y + GH - editor.font_measuring.y
                 };
-				draw_status("/", editor.font, editor.font_measuring, RGRAY, RGRAY, RBLACK);
-				DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, find_pos, editor.font.baseSize, RFONT_SPACING, RGRAY);
+				draw_status("/", editor.font, editor.font_measuring, RBG2, RBG2, RBG);
+				DrawTextCodepoints(editor.font, editor.search_promp, editor.search_len, find_pos, editor.font.baseSize, RFONT_SPACING, RBG2);
             }
 
             EndTextureMode();
@@ -545,17 +519,17 @@ int main(int argc, char **argv)
             }
 
             BeginTextureMode(tex);
-            DrawRectangle(0, 0, GW, GH, RBLACK);
+            DrawRectangle(0, 0, GW, GH, RBG);
             explorer_draw(&explorer, editor.font, editor.font_measuring);
 
             // explorer status 
-            draw_status(status_text, editor.font, editor.font_measuring, RGRAY, RGRAY, RBLACK);
+            draw_status(status_text, editor.font, editor.font_measuring, RBG2, RBG2, RBG);
             Vector2 _pos = { 
                 strlen(status_text) * (editor.font_measuring.x + RFONT_SPACING),
                 GH - editor.font_measuring.y - RFONT_SPACING
             };
             if (explorer.mode != NORMAL) {
-                DrawTextCodepoints(editor.font, explorer.buffer, explorer.buff_cursor, _pos, RFONT_SIZE, RFONT_SPACING, RGRAY);
+                DrawTextCodepoints(editor.font, explorer.buffer, explorer.buff_cursor, _pos, RFONT_SIZE, RFONT_SPACING, RBG2);
             }
 
             EndTextureMode();
@@ -595,7 +569,7 @@ int main(int argc, char **argv)
         //   cursor.selection_begin, cursor.selection_end,
         //   lines.offset
         // ), 140, GH - 30, 20, BLACK);
-        // DrawText(TextFormat("%d - offset: %zu", GetFPS(), lines.offset), 20, GH-30, 20, RBLUE);
+        // DrawText(TextFormat("%d - offset: %zu", GetFPS(), lines.offset), 20, GH-30, 20, RTYPE);
 
         EndDrawing();
 

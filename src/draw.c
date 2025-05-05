@@ -101,7 +101,7 @@ void draw_line_numbers(Camera2D camera, Font font, Vector2 font_measuring, Lines
             camera.target.x + text_left_pos-(_meassure_t.x)-10,
             RTEXT_TOP+(font_measuring.y*(i-1))+(RFONT_SPACING*(i-1))
         };
-        DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, RGRAY);
+        DrawTextEx(font, t, pos, (float)font.baseSize, RFONT_SPACING, RBG2);
     }
 }
 

@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include "../raylib/include/raylib.h"
 #include "config.h"
-#include "undo.h"
 
 //globals
 extern float ScreenW;
@@ -100,7 +99,7 @@ typedef struct {
     int result_line;
     SearchResult result;
 
-	Ustack ustack;
+	//Ustack ustack;
 
     Config config;
 } Editor;

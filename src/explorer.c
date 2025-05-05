@@ -34,7 +34,7 @@ void explorer_load_prevpath(Explorer *e) {
 }
 
 void explorer_draw(Explorer *e, Font font, Vector2 font_measuring) {
-    if (e->y_offset < 1) DrawTextEx(font, "../", (Vector2){20, 20 - (20 * e->y_offset)}, font.baseSize, RFONT_SPACING, RPURPLE);
+    if (e->y_offset < 1) DrawTextEx(font, "../", (Vector2){20, 20 - (20 * e->y_offset)}, font.baseSize, RFONT_SPACING, RNUMBER);
     if (e->cursor == -1) {
         DrawRectangle(20, 20 - (20 * e->y_offset), GW-40, font_measuring.y, (Color){255, 255, 255, 100});
     }
