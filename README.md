@@ -1,7 +1,12 @@
 # ReD is a toy text editor made with raylib
 
-ReD does not have any real meaning (Raylib eDitor and others are just coincidences).
-The editor only have a C mode for drawing colored text.
+features:
+- uncommon keybinds: ctrl + ... [i j k l] for cursor movement, ...[w a s d] for going top, start of line, botton, end of file
+- common keybinds: ctrl + f, z/y
+- can render shaders
+- syntax hightlighting: hardcoded c mode, the one and only
+- toy thex editor
+- only works with monospaced fonts
 
 ![foto](./imagen4.png)
 
@@ -20,3 +25,4 @@ See the `build.sh` script.
 ### Missing features:
 - Undo/Redo
 - Multiple language syntax support
+- Still bugs when loading some files
