@@ -4,7 +4,7 @@ features:
 - uncommon keybinds: ctrl + ... [i j k l] for cursor movement, ...[w a s d] for going top, start of line, botton, end of file
 - common keybinds: ctrl + f, z/y
 - can render shaders
-- syntax hightlighting: hardcoded c mode, the one and only
+- syntax highlighting: hardcoded c mode, the one and only
 - toy thex editor
 - only works with monospaced fonts
 
