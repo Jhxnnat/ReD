@@ -20,7 +20,7 @@ void explorer_load_path(Explorer *e, const char *path) {
         }
         e->filepath_list = LoadDirectoryFiles(_p);
         e->should_free = true;
-        strcpy(e->path, _p); //WARNING, TODO: use strncpy();
+        strcpy(e->path, _p);
     }
     e->cursor = 0;
     printf("[loaded] explorer_load_path...\n");

@@ -65,7 +65,7 @@ void init_editor(Editor *editor, Cursor *cursor, Lines *lines, Text *text, int w
 
     editor->font = LoadFontEx(editor->config.font_file, RFONT_SIZE, NULL, 250);
     if (!IsFontValid(editor->font)) {
-        editor->font = GetFontDefault(); //TODO: 'embed' Iosevka as default font
+        editor->font = GetFontDefault();
     }
     editor->font_measuring = MeasureTextEx(editor->font, "M", editor->font.baseSize, RFONT_SPACING);
 

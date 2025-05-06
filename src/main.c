@@ -495,7 +495,7 @@ int main(int argc, char **argv)
                     if (IsPathFile(path)) {
                         status_text = TextFormat("sure to delete file %s? [ESC to cancel]: ", path);
                     } else {
-                        status_text = "deleting not empty directory is not implemented [ESC to cancel]: ";
+                        status_text = "deleting not empty directory is not yet implemented [ESC to cancel]: ";
                         // TODO: nftw(), rmdir(), unlink()
                     }
                     if (IsKeyPressed(KEY_ENTER) && IsPathFile(path)) {
